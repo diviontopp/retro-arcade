@@ -47,6 +47,7 @@ def on_key_down(event):
         if ball_dy == 0 and ball_dx == 0:
             ball_dx = 2
             ball_dy = -2
+            js.window.triggerSFX('shoot')
     elif event.key == 'Enter':
         reset_game()
 

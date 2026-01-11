@@ -13,6 +13,7 @@ import {
   MonitorApp, PaintApp, SearchApp, ClockApp, PetApp,
   ComicApp, HomeApp, GalleryApp
 } from './apps/ShellApps';
+import audioBus from './services/AudioBus';
 
 function App() {
   const [isBooting, setIsBooting] = useState(true);
@@ -132,7 +133,11 @@ function App() {
 
   // Show boot screen first
   if (isBooting) {
-    return <BootScreen onComplete={() => setIsBooting(false)} />;
+    return <BootScreen onComplete={() => {
+      setIsBooting(false);
+      audioBus.trigger('startup');
+      audioBus.playBGM();
+    }} />;
   }
 
   return (

@@ -7,6 +7,7 @@ interface BootScreenProps {
 const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
     const [lines, setLines] = useState<string[]>([]);
     const [showLogo, setShowLogo] = useState(false);
+    const [waitForInput, setWaitForInput] = useState(false);
 
     // Boot messages to display
     const bootMessages = [
@@ -43,13 +44,30 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
                 index++;
             } else {
                 clearInterval(interval);
-                // Wait a moment then complete
-                setTimeout(() => onComplete(), 1000);
+                // Wait for user interaction
+                setLines(prev => [...prev, '', 'SYSTEM READY.', 'PRESS ANY KEY OR CLICK TO START...']);
+                setWaitForInput(true);
             }
-        }, 150);
+        }, 120); // Faster text
 
         return () => clearInterval(interval);
-    }, [onComplete]);
+    }, []);
+
+    useEffect(() => {
+        if (!waitForInput) return;
+
+        const handleInput = () => {
+            onComplete();
+        };
+
+        window.addEventListener('keydown', handleInput);
+        window.addEventListener('click', handleInput);
+
+        return () => {
+            window.removeEventListener('keydown', handleInput);
+            window.removeEventListener('click', handleInput);
+        };
+    }, [waitForInput, onComplete]);
 
     return (
         <div style={{

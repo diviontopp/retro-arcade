@@ -1,316 +1,228 @@
 /**
  * ═══════════════════════════════════════════════════════════════
- * AUDIOBUS — Web Audio API Sound Synthesizer
+ * AUDIOBUS — Hybrid Audio Engine
  * ═══════════════════════════════════════════════════════════════
  * 
- * Synthesizes arcade sounds using Web Audio API (no MP3s).
- * Exposes window.triggerSFX(type) for Python scripts to call.
+ * Manages Background Music (BGM) playlist and Sound Effects (SFX).
+ * Uses Web Audio API for low-latency SFX and HTML5 Audio for streaming BGM.
  */
 
-type SFXType = 'startup' | 'click' | 'jump' | 'crash' | 'game_over';
+type SFXType = 'startup' | 'click' | 'jump' | 'crash' | 'game_over' | 'rotate' | 'lock' | 'score' | 'shoot' | 'enemy_hit' | 'bounce';
+
+// Configuration for file-based SFX
+const SFX_FILES: Record<string, string> = {
+    'jump': '/audio/jumpsound.wav',
+    'game_over': '/audio/gameover.wav',
+    'crash': '/audio/losesound.wav',
+    'score': '/audio/mixkit-unlock-game-notification-253.wav',
+    'startup': '/audio/gamenotif.wav',
+    // Fallbacks or additional mappings
+    'enemy_hit': '/audio/arcade-space-shooter-dead-notification-272.wav',
+    'bonus': '/audio/bonusalert.wav'
+};
+
+const BGM_PLAYLIST = [
+    '/audio/mainmusic.mp3',
+    '/audio/chip-mode-danijel-zambo-main-version-1431-02-05.mp3',
+    '/audio/arcadevocals.mp3',
+    '/audio/collectionofarcadesounds.mp3'
+];
 
 class AudioBus {
     private ctx: AudioContext | null = null;
+    private bgm: HTMLAudioElement | null = null;
+    private sfxBuffers: Map<string, AudioBuffer> = new Map();
+    private currentTrackIndex = 0;
+    private isMuted = false;
+    private volume = 0.5;
 
     constructor() {
-        // Initialize AudioContext on first user interaction
         if (typeof window !== 'undefined') {
             this.initAudioContext();
+            this.preloadSFX();
+            this.playBGM(); // Attempt autoplay
         }
     }
 
     private initAudioContext() {
         try {
-            this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            this.ctx = new AudioContextClass();
         } catch (e) {
             console.warn('Web Audio API not supported:', e);
         }
     }
 
+    private async preloadSFX() {
+        if (!this.ctx) return;
+
+        for (const [key, path] of Object.entries(SFX_FILES)) {
+            try {
+                const response = await fetch(path);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await this.ctx.decodeAudioData(arrayBuffer);
+                this.sfxBuffers.set(key, audioBuffer);
+            } catch (e) {
+                console.warn(`Failed to load SFX ${path}:`, e);
+            }
+        }
+    }
+
     /**
-     * Ensure AudioContext is running (required after user interaction)
+     * Start Background Music Playlist
      */
-    private async ensureContext(): Promise<AudioContext | null> {
-        if (!this.ctx) {
-            this.initAudioContext();
-        }
+    public playBGM() {
+        if (this.bgm) return;
 
-        if (this.ctx && this.ctx.state === 'suspended') {
-            await this.ctx.resume();
-        }
+        this.bgm = new Audio(BGM_PLAYLIST[this.currentTrackIndex]);
+        this.bgm.volume = this.volume;
+        this.bgm.loop = false; // We handle loop manually to go to next track
 
+        // Playlist logic
+        this.bgm.addEventListener('ended', () => {
+            this.currentTrackIndex = (this.currentTrackIndex + 1) % BGM_PLAYLIST.length;
+            if (this.bgm) {
+                this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex];
+                this.bgm.play().catch(e => console.log("Autoplay blocked/waiting:", e));
+            }
+        });
+
+        // Try to play (will fail without interaction usually)
+        const playPromise = this.bgm.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.log("Audio autoplay prevented. Waiting for interaction.", error);
+                // Add one-time click listener to start audio
+                const startAudio = () => {
+                    if (this.bgm) this.bgm.play();
+                    this.initAudioContext();
+                    if (this.ctx?.state === 'suspended') this.ctx.resume();
+                    document.removeEventListener('click', startAudio);
+                    document.removeEventListener('keydown', startAudio);
+                };
+                document.addEventListener('click', startAudio);
+                document.addEventListener('keydown', startAudio);
+            });
+        }
+    }
+
+    public setVolume(val: number) {
+        this.volume = Math.max(0, Math.min(1, val));
+        if (this.bgm) this.bgm.volume = this.volume;
+    }
+
+    private async ensureContext() {
+        if (!this.ctx) this.initAudioContext();
+        if (this.ctx?.state === 'suspended') await this.ctx.resume();
         return this.ctx;
     }
 
     /**
-     * STARTUP SOUND: Dial-up modem handshake
-     * Simulates the classic modem connection sound with noise + sine waves
+     * Trigger a sound effect
      */
-    private async playStartup() {
+    public async trigger(type: SFXType | string) {
+        if (this.isMuted) return;
         const ctx = await this.ensureContext();
         if (!ctx) return;
 
-        const now = ctx.currentTime;
-        const duration = 2.5;
+        // Check if we have a file loaded for this type
+        if (this.sfxBuffers.has(type)) {
+            const source = ctx.createBufferSource();
+            source.buffer = this.sfxBuffers.get(type)!;
 
-        // White noise for modem static
-        const bufferSize = ctx.sampleRate * duration;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
+            const gainNode = ctx.createGain();
+            // slightly louder for critical events
+            gainNode.gain.value = (type === 'game_over' || type === 'score') ? 0.8 : 0.6;
 
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
+            source.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            source.start(0);
+        } else {
+            // Fallback to synthesis for missing files
+            this.synthesizeSFX(type);
         }
-
-        const noise = ctx.createBufferSource();
-        noise.buffer = noiseBuffer;
-
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.1, now);
-        noiseGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        // Sine wave sweeps (modem tones)
-        const osc1 = ctx.createOscillator();
-        osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(1200, now);
-        osc1.frequency.exponentialRampToValueAtTime(2400, now + 0.5);
-        osc1.frequency.setValueAtTime(1800, now + 0.5);
-        osc1.frequency.exponentialRampToValueAtTime(1000, now + 1.5);
-
-        const osc2 = ctx.createOscillator();
-        osc2.type = 'sine';
-        osc2.frequency.setValueAtTime(800, now);
-        osc2.frequency.exponentialRampToValueAtTime(1600, now + 0.8);
-
-        const oscGain = ctx.createGain();
-        oscGain.gain.setValueAtTime(0.15, now);
-        oscGain.gain.setValueAtTime(0.15, now + 1.5);
-        oscGain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        // Connect nodes
-        noise.connect(noiseGain);
-        osc1.connect(oscGain);
-        osc2.connect(oscGain);
-        noiseGain.connect(ctx.destination);
-        oscGain.connect(ctx.destination);
-
-        // Start and stop
-        noise.start(now);
-        osc1.start(now);
-        osc2.start(now);
-        noise.stop(now + duration);
-        osc1.stop(now + duration);
-        osc2.stop(now + duration);
     }
 
     /**
-     * CLICK SOUND: Very short high-frequency square wave
-     * Duration: 0.05s
+     * Fallback Synthesizer (kept from original)
      */
-    private async playClick() {
-        const ctx = await this.ensureContext();
-        if (!ctx) return;
-
-        const now = ctx.currentTime;
-        const duration = 0.05;
-
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(1200, now);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
+    private synthesizeSFX(type: string) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.ctx.destination);
 
-        osc.start(now);
-        osc.stop(now + duration);
-    }
-
-    /**
-     * JUMP SOUND: Slide-whistle effect
-     * Sine wave frequency ramping up
-     */
-    private async playJump() {
-        const ctx = await this.ensureContext();
-        if (!ctx) return;
-
-        const now = ctx.currentTime;
-        const duration = 0.15;
-
-        const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(800, now + duration);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + duration);
-    }
-
-    /**
-     * CRASH SOUND: White noise burst
-     */
-    private async playCrash() {
-        const ctx = await this.ensureContext();
-        if (!ctx) return;
-
-        const now = ctx.currentTime;
-        const duration = 0.3;
-
-        const bufferSize = ctx.sampleRate * duration;
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-
-        for (let i = 0; i < bufferSize; i++) {
-            output[i] = Math.random() * 2 - 1;
-        }
-
-        const noise = ctx.createBufferSource();
-        noise.buffer = noiseBuffer;
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        // Low-pass filter for more "thud" effect
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, now);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        noise.start(now);
-        noise.stop(now + duration);
-    }
-
-    /**
-     * GAME OVER SOUND: Descending tone
-     */
-    private async playGameOver() {
-        const ctx = await this.ensureContext();
-        if (!ctx) return;
-
-        const now = ctx.currentTime;
-        const duration = 0.5;
-
-        const osc = ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(440, now);
-        osc.frequency.exponentialRampToValueAtTime(110, now + duration);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(now);
-        osc.stop(now + duration);
-    }
-
-    /**
-     * Main trigger function exposed to window
-     */
-    public trigger(type: SFXType | string) {
         switch (type) {
-            case 'startup':
-                this.playStartup();
-                break;
             case 'click':
-            case 'move': // reusing click for move
-                this.playClick();
-                break;
-            case 'jump':
-                this.playJump();
-                break;
-            case 'crash':
-                this.playCrash();
-                break;
-            case 'game_over':
-                this.playGameOver();
+            case 'move':
+            case 'type':
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
                 break;
             case 'rotate':
-                // Higher pitch click for rotate
-                this.playRotate();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+                break;
+            case 'shoot':
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+                break;
+            case 'bounce':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
                 break;
             case 'lock':
-                // Thud for lock
-                this.playLock();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
                 break;
             default:
-                console.warn(`Unknown SFX type: ${type}`);
+                // Generic beep
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
         }
     }
-
-    private async playRotate() {
-        const ctx = await this.ensureContext();
-        if (!ctx) return;
-        const now = ctx.currentTime;
-        const duration = 0.05;
-
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(1200, now);
-        // Quick subtle pitch shift
-        osc.frequency.linearRampToValueAtTime(1400, now + duration);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.1, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + duration);
-    }
-
-    private async playLock() {
-        const ctx = await this.ensureContext();
-        if (!ctx) return;
-        const now = ctx.currentTime;
-        const duration = 0.1;
-
-        // Low frequency noise or square wave
-        const osc = ctx.createOscillator();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.exponentialRampToValueAtTime(50, now + duration);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + duration);
-    }
 }
 
-// Create singleton instance
+// Singleton
 const audioBus = new AudioBus();
 
-// Expose to window for Python scripts
+// Global Access
 declare global {
     interface Window {
-        triggerSFX: (type: SFXType) => void;
+        triggerSFX: (type: SFXType | string) => void;
     }
 }
-
 if (typeof window !== 'undefined') {
-    window.triggerSFX = (type: SFXType) => audioBus.trigger(type);
+    window.triggerSFX = (type) => audioBus.trigger(type);
 }
 
 export default audioBus;

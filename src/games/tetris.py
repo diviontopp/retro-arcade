@@ -500,6 +500,7 @@ class Game:
                         self.b2b = False
                         
                     if count > 0:
+                        js.window.triggerSFX('score') # Play score sound
                         self.combo += 1
                         if self.combo > 0:
                             bonus = 50 * self.combo * self.level
