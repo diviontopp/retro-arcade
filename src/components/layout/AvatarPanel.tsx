@@ -1,0 +1,39 @@
+import React from 'react';
+import { AnimatedAvatar } from '../fx/Animations';
+
+// Male avatar panel - right side character display
+const AvatarPanel: React.FC = () => {
+    return (
+        <div style={{
+            // borderLeft handled by App.tsx container
+            backgroundColor: 'transparent',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-end', // Align bottom
+            padding: '0', // Remove padding to max size
+            position: 'relative',
+            minWidth: '350px',
+            height: 'calc(100vh - 60px - 200px)',
+            overflow: 'hidden'
+        }}>
+            {/* Green Header Line */}
+            <div style={{
+                width: '100%',
+                height: '4px',
+                backgroundColor: 'var(--primary)',
+                marginBottom: '10px' // Spacing
+            }}></div>
+
+            {/* Pixel Art Avatar Image - fills available space */}
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <AnimatedAvatar
+                    src="/neo_avatar.png"
+                    alt="Neo - Arcade Host"
+                />
+            </div>
+        </div>
+    );
+};
+
+export default AvatarPanel;

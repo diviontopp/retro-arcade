@@ -1,0 +1,198 @@
+/* Global CSS Variables and Animations */
+:root {
+  /* Color Palette - Chartreuse primary */
+  --color-chartreuse: #7fff00;
+  --primary: #7fff00;
+  --color-void-black: #000000;
+  --color-charcoal: #1a1a1a;
+  --color-slate-blue: #6a5acd;
+  --color-orange: #ff7f50;
+  /* Coral accent */
+
+  /* Borders */
+  --border-width: 4px;
+  --color-border-primary: var(--color-chartreuse);
+
+  /* Typography */
+  --font-primary: "DejaVu Sans Mono", "Courier New", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-primary);
+  color: var(--primary);
+  background-color: var(--color-void-black);
+  overflow: hidden;
+  text-transform: lowercase;
+  image-rendering: pixelated;
+  /* Custom pixelated cursor */
+  cursor: crosshair;
+}
+
+/* Starfield background animation */
+@keyframes twinkle {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.starfield {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 50%;
+  animation: twinkle var(--duration, 3s) infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* Floating particles animation */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  90% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(-100vh) translateX(var(--drift, 20px)) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.particle {
+  position: fixed;
+  font-size: 24px;
+  pointer-events: none;
+  z-index: 999;
+  animation: float var(--float-duration, 10s) linear infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
+/* Glow effect for primary elements */
+.glow {
+  filter: drop-shadow(0 0 8px var(--primary));
+}
+
+/* Pixelated animations */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 0 5px var(--primary));
+  }
+
+  50% {
+    filter: drop-shadow(0 0 15px var(--primary));
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Scanline effect */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+.scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(transparent, var(--primary), transparent);
+  opacity: 0.1;
+  animation: scanline 8s linear infinite;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-void-black);
+  border: 2px solid var(--primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border: 2px solid var(--color-void-black);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-orange);
+}
+
+/* Glitch effect for hover states */
+@keyframes glitch {
+  0% {
+    transform: translate(0);
+  }
+
+  20% {
+    transform: translate(-2px, 2px);
+  }
+
+  40% {
+    transform: translate(-2px, -2px);
+  }
+
+  60% {
+    transform: translate(2px, 2px);
+  }
+
+  80% {
+    transform: translate(2px, -2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
+}
+
+.glitch-hover:hover {
+  animation: glitch 0.3s;
+}
