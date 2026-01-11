@@ -106,6 +106,34 @@ class AudioBus {
         }
     }
 
+    public toggleBGM() {
+        if (!this.bgm) {
+            this.playBGM();
+            return true;
+        }
+        if (this.bgm.paused) {
+            this.bgm.play();
+            return true;
+        } else {
+            this.bgm.pause();
+            return false;
+        }
+    }
+
+    public nextTrack() {
+        if (!this.bgm) return;
+        this.currentTrackIndex = (this.currentTrackIndex + 1) % BGM_PLAYLIST.length;
+        this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex];
+        this.bgm.play();
+    }
+
+    public prevTrack() {
+        if (!this.bgm) return;
+        this.currentTrackIndex = (this.currentTrackIndex - 1 + BGM_PLAYLIST.length) % BGM_PLAYLIST.length;
+        this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex];
+        this.bgm.play();
+    }
+
     public setVolume(val: number) {
         this.volume = Math.max(0, Math.min(1, val));
         if (this.bgm) this.bgm.volume = this.volume;

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import audioBus from '../../services/AudioBus';
 
 // Bottom taskbar with all shell OS apps from insect.christmas
 const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWindow }) => {
     const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    const [isPlaying, setIsPlaying] = useState(true); // Assume auto-playing on start
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -39,21 +41,23 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
     );
 
     // Music Player Control Button
-    const MusicBtn: React.FC<{ label: string }> = ({ label }) => (
-        <button style={{
-            width: '32px',
-            height: '32px',
-            backgroundColor: 'var(--primary)',
-            color: 'black',
-            border: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            marginRight: '4px'
-        }}>
+    const MusicBtn: React.FC<{ label: string; onClick?: () => void }> = ({ label, onClick }) => (
+        <button
+            onClick={onClick}
+            style={{
+                width: '32px',
+                height: '32px',
+                backgroundColor: 'var(--primary)',
+                color: 'black',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginRight: '4px'
+            }}>
             {label}
         </button>
     );
@@ -108,9 +112,12 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
                 padding: '4px',
                 height: '40px'
             }}>
-                <MusicBtn label="⏮" />
-                <MusicBtn label="▶" />
-                <MusicBtn label="⏭" />
+                <MusicBtn label="⏮" onClick={() => audioBus.prevTrack()} />
+                <MusicBtn label={isPlaying ? "⏸" : "▶"} onClick={() => {
+                    const playing = audioBus.toggleBGM();
+                    setIsPlaying(playing);
+                }} />
+                <MusicBtn label="⏭" onClick={() => audioBus.nextTrack()} />
 
                 <span style={{ fontSize: '20px', margin: '0 8px', color: '#aaa' }}>🔊</span>
 
@@ -120,6 +127,7 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
                     min="0"
                     max="100"
                     defaultValue="50"
+                    onChange={(e) => audioBus.setVolume(Number(e.target.value) / 100)}
                     style={{
                         width: '80px',
                         accentColor: '#6A00FF', // Purple accent
@@ -135,7 +143,8 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
                     fontSize: '16px',
                     letterSpacing: '1px'
                 }}>
-                    00:00/00:00
+                    {/* Placeholder for now, could be hooked up to events later */}
+                    BGM
                 </span>
             </div>
 
