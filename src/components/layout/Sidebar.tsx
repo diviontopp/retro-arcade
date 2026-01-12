@@ -49,7 +49,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
                 paddingLeft: '10px',
                 fontSize: '20px',
                 fontWeight: 'bold',
-                fontFamily: 'monospace',
                 textTransform: 'lowercase',
                 color: 'var(--primary)',
             }} className="sidebar-box">

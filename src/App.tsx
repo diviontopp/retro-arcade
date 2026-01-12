@@ -148,7 +148,7 @@ function App() {
 
       <div className="app-container" style={{
         display: 'grid',
-        gridTemplateColumns: showAvatar ? '160px 1fr 450px' : '160px 1fr 0px',
+        gridTemplateColumns: showAvatar ? '240px 1fr 450px' : '240px 1fr 0px',
         gridTemplateRows: '1fr 60px',
         width: '100vw',
         height: '100vh',
