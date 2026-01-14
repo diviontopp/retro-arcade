@@ -18,6 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame, isMobile = false }) => {
     // Additional "fake" links to match the density of the reference image
     const links = [
         { label: 'about', icon: '📜', id: 'about', iconSrc: '/icons/about.png' },
+        { label: 'scores', icon: '🎮', id: 'SCORES', iconSrc: '/icons/controls.png' },
         { label: 'tech stack', icon: '💻', id: 'TECH_STACK', iconSrc: '/icons/techstack.png' },
         { label: 'music', icon: '🎵', id: 'MUSIC', iconSrc: '/icons/music.png' },
         { label: 'photos', icon: '🖼️', id: 'PHOTOS', iconSrc: '/icons/photos.png' },
@@ -126,13 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame, isMobile = false }) => {
                 {/* Small separator */}
                 <div style={{ width: '1px', height: '36px', backgroundColor: 'var(--primary)', margin: '0 2px', flexShrink: 0 }}></div>
 
-                {/* Controls */}
-                <SidebarItem
-                    label="controls"
-                    icon="🎮"
-                    iconSrc="/icons/controls.png"
-                    onClick={() => onOpenGame && onOpenGame('CONTROLS')}
-                />
+
 
                 {/* Links */}
                 {links.map((link, i) => (
@@ -191,17 +186,23 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame, isMobile = false }) => {
                 />
             ))}
 
-            {/* Controls Button */}
-            <SidebarItem
-                label="controls"
-                icon="🎮"
-                iconSrc="/icons/controls.png"
-                onClick={() => onOpenGame && onOpenGame('CONTROLS')}
-            />
+
 
             <div style={{ height: '20px' }}></div>
 
-            {/* Extra Links for aesthetic density */}
+            {/* Header for Info */}
+            <div style={{
+                color: 'var(--primary)',
+                marginBottom: '10px',
+                border: '4px solid var(--primary)',
+                padding: '4px 8px',
+                fontWeight: 'bold',
+                backgroundColor: 'black'
+            }}>
+                info.dir
+            </div>
+
+            {/* Links List */}
             {links.map((link, i) => (
                 <SidebarItem
                     key={i}

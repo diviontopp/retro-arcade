@@ -16,6 +16,8 @@ import {
 import audioBus from './services/AudioBus';
 import { initMobileControls, removeMobileControls } from './services/MobileControls';
 
+import { LoginApp } from './apps/LoginApp';
+
 function App() {
   const [isBooting, setIsBooting] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -47,7 +49,7 @@ function App() {
   const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number; height?: number }[]>([]);
   const [showParticles, setShowParticles] = useState(false);
   const [showAvatar, setShowAvatar] = useState(true);
-  const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS'>('ABOUT');
+  const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS' | 'SCORES'>('ABOUT');
   const getWindowConfig = (type: string) => {
     const configs: Record<string, { title: string; width: number; height: number }> = {
       CALC: { title: 'calc.exe', width: 280, height: 400 },
@@ -63,6 +65,7 @@ function App() {
       COMIC: { title: 'comic.exe', width: 320, height: 400 },
       HOME: { title: 'home.exe', width: 320, height: 280 },
 
+      LOGIN: { title: 'access_control.sys', width: 340, height: 400 },
       AVATAR_TOGGLE: { title: 'avatar.exe', width: 300, height: 200 },
       RANDOM: { title: 'random.exe', width: 300, height: 250 },
       GALLERY: { title: 'gallery.exe', width: 360, height: 420 },
@@ -110,6 +113,11 @@ function App() {
       return;
     }
 
+    if (type === 'SCORES') {
+      setMainContentMode('SCORES');
+      return;
+    }
+
     if (type === 'CONTROLS') {
       setMainContentMode('CONTROLS');
       return;
@@ -138,7 +146,7 @@ function App() {
   const renderAppContent = (type: string, onClose: () => void) => {
     switch (type) {
       case 'CALC': return <CalcApp />;
-      case 'TERMINAL': return <TerminalApp />;
+      case 'TERMINAL': return <TerminalApp onOpenWindow={openWindow} />;
       case 'NOTEPAD': return <NotepadApp />;
       case 'CALENDAR': return <CalendarApp />;
       case 'STOPWATCH': return <StopwatchApp />;
@@ -150,6 +158,7 @@ function App() {
       case 'COMIC': return <ComicApp />;
       case 'HOME': return <HomeApp />;
       case 'GALLERY': return <GalleryApp />;
+      case 'LOGIN': return <LoginApp />;
       // TECH_STACK removed - handled by main content mode
       case 'BG_CYCLE': return <div style={{ padding: '20px' }}>background cycle<br />[coming soon]</div>;
       case 'AVATAR_TOGGLE': return <div style={{ padding: '20px' }}>avatar toggle<br />[coming soon]</div>;
@@ -162,7 +171,6 @@ function App() {
       default: return <div style={{ padding: '20px' }}>{type.toLowerCase()}<br />[coming soon]</div>;
     }
   };
-
 
 
   // Show boot screen first

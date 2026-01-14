@@ -1,203 +1,224 @@
-# snake.py - Classic Snake game for Pyodide
+from pyodide.ffi import create_proxy
 import js
 import random
-from pyodide.ffi import create_proxy
+import game_utils
 
-# Canvas setup
 canvas = js.document.getElementById('game-canvas')
+ctx = canvas.getContext('2d')
 canvas.width = 640
 canvas.height = 480
-ctx = canvas.getContext('2d')
 
-# Game settings
-CELL_SIZE = 40
-GRID_W = canvas.width // CELL_SIZE
-GRID_H = canvas.height // CELL_SIZE
+# Constants
+GRID_SIZE = 32
+GRID_W = 640 // GRID_SIZE
+GRID_H = 480 // GRID_SIZE
 
-# Game State
-snake = []
-direction = (1, 0)
-food = (0, 0)
+# State
+snake = [(10, 10)]
+direction = (1, 0) # dx, dy
+next_direction = (1, 0)
+food = (15, 10)
 score = 0
-state = "PLAYING" # PLAYING, GAMEOVER
-frame_count = 0
-BASE_MOVE_INTERVAL = 18  # Start slower (was 10)
-MIN_MOVE_INTERVAL = 4    # Fastest speed
-SPEED_INCREASE_PER_FOOD = 1  # Speed up by reducing interval by 1 per food eaten
+game_over = False
 
-def get_move_interval():
-    """Calculate move interval based on score - gets faster as you eat more"""
-    interval = BASE_MOVE_INTERVAL - (score * SPEED_INCREASE_PER_FOOD)
-    return max(MIN_MOVE_INTERVAL, interval)
+# Systems
+particles = game_utils.ParticleSystem()
+shake = game_utils.ScreenShake()
 
 def reset_game():
-    global snake, direction, food, score, state, frame_count
-    snake = [(GRID_W // 2, GRID_H // 2)]
+    global snake, direction, next_direction, food, score, game_over
+    snake = [(10, 10)]
     direction = (1, 0)
+    next_direction = (1, 0)
     spawn_food()
     score = 0
-    state = "PLAYING"
-    frame_count = 0
+    game_over = False
+    shake.trigger(0)
+    js.window.setGameOver(False)
 
 def spawn_food():
     global food
     while True:
-        food = (random.randint(0, GRID_W - 1), random.randint(0, GRID_H - 1))
-        if food not in snake:
+        x = random.randint(0, GRID_W - 1)
+        y = random.randint(0, GRID_H - 1)
+        if (x, y) not in snake:
+            food = (x, y)
             break
 
-# Input handling
-key_queue = []
-
-def on_key(event):
-    global key_queue, state
-    if state == "GAMEOVER":
-        if event.key == "Enter":
+def on_key(e):
+    global next_direction, game_over
+    try:
+        key = e.key.lower()
+        
+        if key == "enter" and game_over:
             reset_game()
-        return
+            return
 
-    key_map = {
-        'w': (0, -1), 'ArrowUp': (0, -1),
-        's': (0, 1), 'ArrowDown': (0, 1),
-        'a': (-1, 0), 'ArrowLeft': (-1, 0),
-        'd': (1, 0), 'ArrowRight': (1, 0)
-    }
-    k = event.key
-    if k in key_map:
-        # Queue input to prevent 180-degree turn in same frame
-        key_queue.append(key_map[k])
+        dx, dy = direction
+        if (key == "arrowup" or key == "w") and dy == 0:
+            next_direction = (0, -1)
+        elif (key == "arrowdown" or key == "s") and dy == 0:
+            next_direction = (0, 1)
+        elif (key == "arrowleft" or key == "a") and dx == 0:
+            next_direction = (-1, 0)
+        elif (key == "arrowright" or key == "d") and dx == 0:
+            next_direction = (1, 0)
+    except: pass
 
-# Wrap key listener
+# Setup Event Listener with Proxy
 key_proxy = create_proxy(on_key)
 js.document.addEventListener('keydown', key_proxy)
 
-def draw_cell(pos, color, inset=2):
-    x, y = pos
-    ctx.fillStyle = color
-    ctx.fillRect(x * CELL_SIZE + inset, y * CELL_SIZE + inset, CELL_SIZE - inset*2, CELL_SIZE - inset*2)
+def update():
+    global direction, score, game_over, snake
+    
+    if game_over: return
 
-def draw_text_centered(text, y, size=30, color="#00FF41"):
-    ctx.fillStyle = color
-    ctx.font = f"{size}px 'Press Start 2P', monospace"
+    direction = next_direction
+    head_x, head_y = snake[0]
+    dx, dy = direction
+    new_head = (head_x + dx, head_y + dy)
+
+    # Wrap around walls
+    new_head = (new_head[0] % GRID_W, new_head[1] % GRID_H)
+
+    # Collision with self
+    if new_head in snake:
+         end_game()
+         return
+
+    snake.insert(0, new_head)
+
+    # Eat food
+    if new_head == food:
+        score += 10
+        js.window.triggerSFX('score')
+        particles.spawn(food[0] * GRID_SIZE + 10, food[1] * GRID_SIZE + 10, "#FF3333", 10)
+        spawn_food()
+    else:
+        snake.pop()
+
+def end_game():
+    global game_over
+    game_over = True
+    js.window.setGameOver(True)
+    js.window.triggerSFX('game_over')
+    shake.trigger(10)
+    try:
+        js.window.submitScore(score)
+    except:
+        pass
+
+def draw():
+    # 1. Background (Pure Black)
+    ctx.fillStyle = "#000000"
+    ctx.fillRect(0, 0, 640, 480)
+    
+    shake.apply(ctx)
+    
+    # 2. Grid (Very Subtle)
+    ctx.strokeStyle = "rgba(20, 20, 20, 0.5)"
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    for x in range(0, 640, GRID_SIZE):
+        ctx.moveTo(x, 0); ctx.lineTo(x, 480)
+    for y in range(0, 480, GRID_SIZE):
+        ctx.moveTo(0, y); ctx.lineTo(640, y)
+    ctx.stroke()
+
+    # 3. Food (Red Orb)
+    fx, fy = food
+    ctx.shadowBlur = 15
+    ctx.shadowColor = "#FF3333"
+    ctx.fillStyle = "#FF3333"
+    
+    # Pulse animation
+    pulse = (js.performance.now() % 1000) / 1000
+    size_mod = 2 * pulse
+    
+    # Draw food
+    ctx.beginPath()
+    ctx.arc(fx * GRID_SIZE + GRID_SIZE/2, fy * GRID_SIZE + GRID_SIZE/2, GRID_SIZE/2 - 2 + size_mod, 0, 6.28)
+    ctx.fill()
+    ctx.shadowBlur = 0 # Reset shadow
+
+    # 4. Snake (Gradient & Eyes)
+    for i, (x, y) in enumerate(snake):
+        # Body Gradient: Head is bright, tail is darker
+        brightness = 255 - min(150, i * 5)
+        color = f"rgb(0, {brightness}, 65)"
+        
+        ctx.fillStyle = color
+        
+        # Slight rounded effect
+        ctx.fillRect(x * GRID_SIZE + 1, y * GRID_SIZE + 1, GRID_SIZE - 2, GRID_SIZE - 2)
+        
+        # Eyes on Head
+        if i == 0:
+            ctx.fillStyle = "white"
+            cx = x * GRID_SIZE + GRID_SIZE / 2
+            cy = y * GRID_SIZE + GRID_SIZE / 2
+            
+            # Eye offsets based on actual direction
+            pd_x, pd_y = -direction[1], direction[0]
+            
+            eye_gap = GRID_SIZE * 0.25
+            e1x = cx + pd_x * eye_gap + direction[0] * 5
+            e1y = cy + pd_y * eye_gap + direction[1] * 5
+            e2x = cx - pd_x * eye_gap + direction[0] * 5
+            e2y = cy - pd_y * eye_gap + direction[1] * 5
+            
+            radius = GRID_SIZE * 0.15
+            
+            ctx.beginPath(); ctx.arc(e1x, e1y, radius, 0, 6.28); ctx.fill()
+            ctx.beginPath(); ctx.arc(e2x, e2y, radius, 0, 6.28); ctx.fill()
+            
+            # Pupils (looking forward)
+            ctx.fillStyle = "black"
+            ctx.beginPath(); ctx.arc(e1x + direction[0]*2, e1y + direction[1]*2, radius*0.5, 0, 6.28); ctx.fill()
+            ctx.beginPath(); ctx.arc(e2x + direction[0]*2, e2y + direction[1]*2, radius*0.5, 0, 6.28); ctx.fill()
+
+    # 5. Particles
+    particles.update_and_draw(ctx)
+    
+    shake.reset(ctx)
+
+    # 6. HUD (Styled)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)"
+    ctx.fillRect(10, 10, 140, 40)
+    ctx.strokeStyle = "#00FF41"
+    ctx.lineWidth = 2
+    ctx.strokeRect(10, 10, 140, 40)
+    
+    ctx.fillStyle = "#00FF41"
+    ctx.font = "20px 'Courier New', monospace"
     ctx.textAlign = "center"
-    ctx.fillText(text, canvas.width / 2, y)
+    ctx.fillText(f"SCORE: {score}", 80, 37)
+    ctx.textAlign = "start"
+
+last_time = 0
+req_id = None
 
 def loop(timestamp):
-    global snake, direction, state, frame_count, score
+    global last_time, req_id
+    if timestamp - last_time > 150: # Slower (~6.6 FPS)
+        update()
+        last_time = timestamp
     
-    try:
-        if state == "VIDE":
-            return
-            
-        # Hook for React retry button
-        if state == "GAMEOVER":
-             js.window.setGameOver(True)
-        else:
-             js.window.setGameOver(False)
+    draw() 
+    req_id = js.window.requestAnimationFrame(proxy_loop)
 
-        # Clear screen
-        ctx.fillStyle = '#000000'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        
-        # Draw Grid (Boxes)
-        ctx.strokeStyle = '#222222'
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        for x in range(0, canvas.width + 1, CELL_SIZE):
-            ctx.moveTo(x, 0)
-            ctx.lineTo(x, canvas.height)
-        for y in range(0, canvas.height + 1, CELL_SIZE):
-            ctx.moveTo(0, y)
-            ctx.lineTo(canvas.width, y)
-        ctx.stroke()
-        
-        # Render Score
-        ctx.fillStyle = "#00FF41"
-        ctx.font = "20px monospace"
-        ctx.textAlign = "left"
-        ctx.fillText(f"SCORE: {score}", 10, 30)
-
-        if state == "PLAYING":
-            frame_count += 1
-            if frame_count >= get_move_interval():
-                frame_count = 0
-                
-                # Process Input
-                if key_queue:
-                    new_dir = key_queue.pop(0)
-                    if new_dir[0] != -direction[0] or new_dir[1] != -direction[1]:
-                        direction = new_dir
-                    if len(key_queue) > 2: key_queue[:] = key_queue[:2]
-
-                # Move
-                head_x, head_y = snake[0]
-                dx, dy = direction
-                new_head = ((head_x + dx) % GRID_W, (head_y + dy) % GRID_H)
-
-                # Collision
-                if new_head in snake:
-                    state = "GAMEOVER"
-                    js.window.triggerSFX('game_over')
-                    js.window.setGameOver(True)
-                else:
-                    snake.insert(0, new_head)
-                    
-                    if new_head == food:
-                        score += 10
-                        if score % 50 == 0: js.window.triggerSFX('jump') # Milestone sound
-                        else: js.window.triggerSFX('click') # Eat sound
-                        spawn_food()
-                    else:
-                        snake.pop()
-
-        # Draw Snake
-        for i, segment in enumerate(snake):
-            color = "#00FF41"
-            if i == 0: color = "#CCFFCC" # Lighter head
-            # Draw with inset for 'box' look on snake too
-            draw_cell(segment, color, inset=1)
-
-        # Draw Food
-        if (js.Date.now() // 200) % 2 == 0: # Flash 
-             draw_cell(food, "#FF0000", inset=4) # Red food
-        
-
-
-    except Exception as e:
-        print(f"Snake Error: {e}")
-
-    if state != "VIDE":
-        game_req_id = js.window.requestAnimationFrame(loop_proxy)
-
-# Init
+# Create Proxy for Loop
+proxy_loop = create_proxy(loop)
 reset_game()
-loop_proxy = create_proxy(loop)
-game_req_id = js.window.requestAnimationFrame(loop_proxy)
+req_id = js.window.requestAnimationFrame(proxy_loop)
 
 def cleanup():
-    global state, key_proxy, loop_proxy
-    if state == "VIDE":
-        return
-    
-    # Mark as cleared to prevent loop execution
-    state = "VIDE"
-    
-    try:
-        js.window.cancelAnimationFrame(game_req_id)
-    except Exception:
-        pass
-
-    try:
-        # Check if key_proxy is defined and valid before removing
-        if 'key_proxy' in globals():
-            js.document.removeEventListener('keydown', key_proxy)
-            key_proxy.destroy()
-    except Exception:
-        pass
-
-    try:
-        # Check if loop_proxy is defined and valid
-        if 'loop_proxy' in globals():
-            loop_proxy.destroy()
-    except Exception:
-        pass
+     try: js.window.cancelAnimationFrame(req_id)
+     except: pass
+     try: js.document.removeEventListener('keydown', key_proxy)
+     except: pass
+     try: key_proxy.destroy()
+     except: pass
+     try: proxy_loop.destroy()
+     except: pass

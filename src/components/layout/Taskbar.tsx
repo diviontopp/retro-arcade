@@ -99,6 +99,7 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
                 <AppButton icon="📝" title="notepad" onClick={() => onOpenWindow('NOTEPAD')} />
                 <AppButton icon="🎨" title="paint" onClick={() => onOpenWindow('PAINT')} />
                 <AppButton icon="⏱️" title="stopwatch" onClick={() => onOpenWindow('STOPWATCH')} />
+                <AppButton icon="🔑" title="login" onClick={() => onOpenWindow('LOGIN')} />
             </div>
 
             <div style={{ flex: 1 }}></div>

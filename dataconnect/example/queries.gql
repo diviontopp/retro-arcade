@@ -1,0 +1,34 @@
+mutation CreateUser @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  user_insert(data: {
+    username: "default_user",
+    email: "default@example.com",
+    createdAt_expr: "request.time"
+  })
+}
+
+query ListGames @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  games {
+    id
+    title
+    genre
+  }
+}
+
+mutation AddScore($gameId: UUID!, $scoreValue: Int!) @auth(level: USER) {
+  score_insert(data: {
+    gameId: $gameId,
+    userId_expr: "auth.uid",
+    scoreValue: $scoreValue,
+    submittedAt_expr: "request.time"
+  })
+}
+
+query GetUserScores @auth(level: USER) {
+  scores(where: {userId: {eq_expr: "auth.uid"}}) {
+    game {
+      title
+    }
+    scoreValue
+    submittedAt
+  }
+}

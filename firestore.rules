@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to scores
+    match /scores/{score} {
+      allow read: if true;
+      // Allow creation of new scores (server-side validation recommended in production)
+      allow create: if true;
+      // Prevent modifying or deleting scores
+      allow update, delete: if false;
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

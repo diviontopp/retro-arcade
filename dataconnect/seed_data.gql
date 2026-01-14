@@ -1,0 +1,50 @@
+mutation CreateSeedData @transaction @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public.") {
+  user_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      username: "demouser1",
+      email: "demouser1@example.com",
+      createdAt: "2024-01-01T00:00:00Z"
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440001",
+      username: "demouser2",
+      email: "demouser2@example.com",
+      createdAt: "2024-01-02T00:00:00Z"
+    }
+  ])
+  game_insertMany(data: [
+    {
+      id: "650e8400-e29b-41d4-a716-446655440002",
+      title: "Example Game 1",
+      description: "An example game for testing",
+      releaseYear: 2020,
+      createdAt: "2024-01-03T00:00:00Z",
+      developer: "Example Dev",
+      genre: "Action"
+    },
+    {
+      id: "750e8400-e29b-41d4-a716-446655440003",
+      title: "Example Game 2",
+      description: "Another example game for testing",
+      releaseYear: 2022,
+      createdAt: "2024-01-04T00:00:00Z",
+      developer: "Another Dev",
+      genre: "RPG"
+    }
+  ])
+  score_insertMany(data: [
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440000",
+      gameId: "650e8400-e29b-41d4-a716-446655440002",
+      scoreValue: 1000,
+      submittedAt: "2024-01-05T00:00:00Z"
+    },
+    {
+      userId: "550e8400-e29b-41d4-a716-446655440001",
+      gameId: "750e8400-e29b-41d4-a716-446655440003",
+      scoreValue: 500,
+      submittedAt: "2024-01-06T00:00:00Z"
+    }
+  ])
+}

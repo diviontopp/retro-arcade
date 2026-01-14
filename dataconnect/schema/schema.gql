@@ -1,0 +1,23 @@
+type User @table {
+  username: String!
+  createdAt: Timestamp!
+  email: String
+  avatarUrl: String
+}
+
+type Game @table {
+  title: String!
+  description: String!
+  releaseYear: Int!
+  createdAt: Timestamp!
+  genre: String
+  developer: String
+}
+
+type Score @table {
+  scoreValue: Int!
+  submittedAt: Timestamp!
+  metadata: String
+  user: User
+  game: Game
+}

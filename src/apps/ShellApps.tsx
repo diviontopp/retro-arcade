@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import audioBus from '../services/AudioBus';
+import { ScoreService } from '../services/ScoreService';
 
 // ============= SEARCH APP (Aoogle) - Matching insect.christmas =============
 export const SearchApp: React.FC = () => {
@@ -263,28 +264,91 @@ export const CalcApp: React.FC = () => {
 };
 
 // ============= TERMINAL APP =============
-export const TerminalApp: React.FC = () => {
-    const [logs] = useState([
-        { time: '13:42:00', type: 'info', msg: 'boot: system_ready' },
-        { time: '13:42:01', type: 'info', msg: 'init: arcade_shell v0.1' },
-        { time: '13:42:02', type: 'info', msg: 'load: games.dir mounted' },
-        { time: '13:42:03', type: 'info', msg: 'net: connection established' },
-        { time: '13:42:04', type: 'info', msg: 'usr: guest logged in' },
-        { time: '13:42:05', type: 'warn', msg: 'pyodide: not initialized' },
-        { time: '13:42:06', type: 'info', msg: 'ui: taskbar loaded' },
-        { time: '13:42:07', type: 'info', msg: 'ui: avatar_panel loaded' },
+interface TerminalProps {
+    onOpenWindow?: (type: string) => void;
+}
+
+export const TerminalApp: React.FC<TerminalProps> = ({ onOpenWindow }) => {
+    const [logs, setLogs] = useState([
+        { time: 'boot', type: 'info', msg: 'Cyber Arcade Shell v1.0' },
+        { time: 'init', type: 'info', msg: 'Type "help" for commands.' },
     ]);
+    const [input, setInput] = useState('');
+    const endRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [logs]);
+
+    const handleCommand = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            const cmd = input.trim().toLowerCase();
+            const newLogs = [...logs, { time: 'user', type: 'input', msg: input }];
+
+            if (cmd === 'help') {
+                newLogs.push({ time: 'sys', type: 'info', msg: 'commands: help, clear, ls, open [app], config theme [color], reboot' });
+            } else if (cmd === 'clear') {
+                setLogs([]);
+                setInput('');
+                return;
+            } else if (cmd === 'ls') {
+                newLogs.push({ time: 'sys', type: 'info', msg: 'Available: snake, tetris, invaders, breakout, antigrav, notepad, paint' });
+            } else if (cmd.startsWith('open ')) {
+                const app = cmd.split(' ')[1];
+                const map: Record<string, string> = {
+                    'snake': 'SNAKE', 'tetris': 'TETRIS', 'invaders': 'INVADERS',
+                    'breakout': 'BREAKOUT', 'antigrav': 'ANTIGRAV',
+                    'notepad': 'NOTEPAD', 'paint': 'PAINT', 'calc': 'CALC'
+                };
+                if (map[app]) {
+                    if (onOpenWindow) {
+                        onOpenWindow(map[app]);
+                        newLogs.push({ time: 'sys', type: 'success', msg: `Opening ${app}...` });
+                    } else {
+                        newLogs.push({ time: 'err', type: 'error', msg: 'Window manager not connected.' });
+                    }
+                } else {
+                    newLogs.push({ time: 'err', type: 'error', msg: `App '${app}' not found.` });
+                }
+            } else if (cmd.startsWith('config theme ')) {
+                const color = cmd.split(' ')[2];
+                document.documentElement.style.setProperty('--primary', color);
+                newLogs.push({ time: 'sys', type: 'success', msg: `Theme set to ${color}` });
+            } else if (cmd === 'reboot') {
+                window.location.reload();
+            } else if (cmd !== '') {
+                newLogs.push({ time: 'err', type: 'error', msg: `Command not found: ${cmd}` });
+            }
+
+            setLogs(newLogs);
+            setInput('');
+        }
+    };
 
     return (
-        <div style={{ padding: '10px', height: '100%', fontFamily: 'monospace', fontSize: '12px', overflow: 'auto' }}>
-            <div style={{ color: 'slateblue', marginBottom: '10px' }}>$ system_logs --tail</div>
-            {logs.map((log, i) => (
-                <div key={i} style={{ color: log.type === 'warn' ? 'coral' : 'var(--primary)' }}>
-                    [{log.time}] {log.msg}
-                </div>
-            ))}
-            <div style={{ marginTop: '15px', color: 'slateblue' }}>$ <span style={{ animation: 'blink 1s infinite' }}>_</span></div>
-            <style>{`@keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }`}</style>
+        <div style={{ padding: '10px', height: '100%', fontFamily: 'monospace', fontSize: '13px', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1 }}>
+                {logs.map((log, i) => (
+                    <div key={i} style={{ color: log.type === 'error' ? 'red' : log.type === 'success' ? '#00FF41' : log.type === 'input' ? '#FFF' : 'var(--primary)', marginBottom: '4px' }}>
+                        <span style={{ opacity: 0.5 }}>[{log.time}]</span> {log.msg}
+                    </div>
+                ))}
+                <div ref={endRef} />
+            </div>
+
+            <div style={{ display: 'flex', marginTop: '10px', borderTop: '1px solid #333', paddingTop: '5px' }}>
+                <span style={{ color: 'var(--primary)', marginRight: '8px' }}>visitor@arcade:~$</span>
+                <input
+                    autoFocus
+                    value={input}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={handleCommand}
+                    style={{
+                        flex: 1, background: 'transparent', border: 'none',
+                        color: 'white', fontFamily: 'inherit', outline: 'none'
+                    }}
+                />
+            </div>
         </div>
     );
 };
@@ -667,14 +731,25 @@ export const ComicApp: React.FC = () => (
 );
 
 // ============= HOME APP =============
-export const HomeApp: React.FC = () => (
-    <div style={{ padding: '20px' }}>
-        <div style={{ fontSize: '20px', marginBottom: '15px' }}>🏠 home</div>
-        <div style={{ color: 'slateblue', marginBottom: '10px' }}>welcome back, guest</div>
-        <div style={{ borderTop: '2px dashed var(--primary)', paddingTop: '15px' }}>
-            <div>📁 recent files: none</div>
-            <div>🎮 last game: snake</div>
-            <div>⏰ session: 0:15:00</div>
+export const HomeApp: React.FC = () => {
+    const scores = ScoreService.getLocalScores();
+    const games = ['invaders', 'tetris', 'snake', 'breakout', 'antigravity'];
+
+    return (
+        <div style={{ padding: '20px' }}>
+            <div style={{ fontSize: '20px', marginBottom: '15px' }}>🏠 home</div>
+            <div style={{ color: 'slateblue', marginBottom: '10px' }}>welcome back, guest</div>
+            <div style={{ borderTop: '2px dashed var(--primary)', paddingTop: '15px' }}>
+                <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>🏁 HIGH SCORES:</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {games.map(g => (
+                        <div key={g} style={{ border: '1px solid #333', padding: '5px', fontSize: '12px' }}>
+                            <div style={{ color: 'gray' }}>{g.toUpperCase()}</div>
+                            <div style={{ color: 'var(--primary)', fontSize: '16px' }}>{scores[g] || 0}</div>
+                        </div>
+                    ))}
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};

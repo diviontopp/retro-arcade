@@ -1,13 +1,16 @@
 import React from 'react';
 
 // Main content window - the "about" page like insect.christmas
-const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS'; children?: React.ReactNode }> = ({ mode = 'ABOUT', children }) => {
+import ScoresContent from './ScoresContent';
+
+const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS' | 'SCORES'; children?: React.ReactNode }> = ({ mode = 'ABOUT', children }) => {
     let content = children;
     if (!content) {
         if (mode === 'TECH_STACK') content = <TechStackContent />;
         else if (mode === 'MUSIC') content = <MusicContent />;
         else if (mode === 'PHOTOS') content = <PhotosContent />;
         else if (mode === 'CONTROLS') content = <ControlsContent />;
+        else if (mode === 'SCORES') content = <ScoresContent />;
         else content = <DefaultContent />;
     }
 
@@ -16,6 +19,7 @@ const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTO
     else if (mode === 'MUSIC') title = 'audio_player.exe';
     else if (mode === 'PHOTOS') title = 'gallery_viewer.exe';
     else if (mode === 'CONTROLS') title = 'input_config.sys';
+    else if (mode === 'SCORES') title = 'high_scores.db';
 
     return (
         <div style={{

@@ -15,6 +15,10 @@ import breakoutScript from '../games/breakout.py?raw';
 import tetrisScript from '../games/tetris.py?raw';
 import invadersScript from '../games/invaders.py?raw';
 import antigravityScript from '../games/antigravity.py?raw';
+import gameUtilsScript from '../games/game_utils.py?raw';
+
+import { ScoreService } from '../services/ScoreService';
+import audioBus from '../services/AudioBus';
 
 interface PyodideRunnerProps {
     scriptName: string;
@@ -30,12 +34,19 @@ const PYTHON_SCRIPTS: Record<string, string> = {
     antigravity: antigravityScript,
 };
 
+const GAME_CONTROLS: Record<string, { desc: string; keys: string[] }> = {
+    snake: { desc: "Eat food to grow. Don't hit walls!", keys: ["WASD / ARROWS : Move"] },
+    breakout: { desc: "Destroy all bricks. Don't lose the ball!", keys: ["ARROWS / MOUSE : Move Paddle", "SPACE : Launch Ball"] },
+    tetris: { desc: "Clear lines by fitting blocks.", keys: ["ARROWS / WASD : Move & Rotate", "SPACE : Hard Drop"] },
+    invaders: { desc: "Defend Earth from alien invasion!", keys: ["ARROWS / WASD : Move Ship", "SPACE : Fire Laser"] },
+    antigravity: { desc: "Run as far as you can!", keys: ["SPACE : Flip Gravity"] },
+};
+
 const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [status, setStatus] = useState<'loading' | 'running' | 'error'>('loading');
+    const [status, setStatus] = useState<'loading' | 'ready' | 'running' | 'error'>('loading');
     const [error, setError] = useState<string | null>(null);
     const [isGameOver, setIsGameOver] = useState(false);
-    const [showLoadingOverlay, setShowLoadingOverlay] = useState(true);
 
     const pyodideRef = useRef<any>(null);
 
@@ -43,16 +54,13 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
     useEffect(() => {
         let mounted = true;
 
-        const loadAndRun = async () => {
+        const loadPyodideEnv = async () => {
             try {
                 setStatus('loading');
-                setShowLoadingOverlay(true);
 
                 // Check if script exists first
                 const script = PYTHON_SCRIPTS[scriptName];
-                if (!script) {
-                    throw new Error(`Script "${scriptName}" not found`);
-                }
+                if (!script) throw new Error(`Script "${scriptName}" not found`);
 
                 // Check if Pyodide is already loaded script tag
                 if (!document.querySelector('script[src*="pyodide.js"]')) {
@@ -64,7 +72,6 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                         document.head.appendChild(pyodideScript);
                     });
                 } else if (!(window as any).loadPyodide) {
-                    // Wait slightly if script tag exists but global not ready
                     await new Promise(r => setTimeout(r, 100));
                 }
 
@@ -81,11 +88,18 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
 
                 const pyodide = pyodideRef.current;
 
-                await pyodide.runPythonAsync(script);
+                // Inject utils module
+                try {
+                    pyodide.FS.writeFile("game_utils.py", gameUtilsScript);
+                } catch (e) {
+                    // Ignore if already exists
+                }
 
                 if (mounted) {
-                    setStatus('running');
+                    // READY to start - pause here and wait for user interaction
+                    setStatus('ready');
                 }
+
             } catch (err) {
                 console.error('Pyodide error:', err);
                 if (mounted) {
@@ -95,61 +109,70 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
             }
         };
 
-        loadAndRun();
+        loadPyodideEnv();
 
         return () => {
             mounted = false;
+            // Cleanup on unmount
             if (pyodideRef.current) {
                 try {
-                    // Attempt to call cleanup() function in Python if it exists
                     pyodideRef.current.runPython(`
-try:
-    cleanup()
-except:
-    pass
-          `);
-                } catch (e) {
-                    console.warn('Could not stop Python execution:', e);
-                }
+                        try: cleanup()
+                        except: pass
+                    `);
+                } catch (e) { }
             }
         };
     }, [scriptName]);
 
-    // Cleanup overlay logic
-    useEffect(() => {
-        if (status === 'running') {
-            const timer = setTimeout(() => {
-                // We keep it mounted but hidden in CSS, so state change isn't strictly necessary for visibility,
-                // but we can toggle this if we wanted to remove it from DOM. 
-                // For now, consistent with CSS logic, we leave it true or handle logic here.
-                // Actually, let's keep it simple and rely on the CSS opacity/visibility trick.
-                setShowLoadingOverlay(false);
-            }, 2000);
-            return () => clearTimeout(timer);
-        }
-    }, [status]);
+    // Cleanup overlay logic (only for running state now)
+    // We already hide it manually when 'ready'.
 
-    // Expose setGameOver to the window object for Python to call
+    // Expose functions to Python
     useEffect(() => {
         (window as any).setGameOver = (state: boolean) => {
             setIsGameOver(state);
         };
+        (window as any).submitScore = (score: number) => {
+            ScoreService.saveScore(scriptName, score);
+            console.log(`Score saved for ${scriptName}: ${score}`);
+        };
+
         return () => {
             delete (window as any).setGameOver;
+            delete (window as any).submitScore;
         };
-    }, []);
+    }, [scriptName]);
+
+    const handleStartGame = async () => {
+        if (pyodideRef.current && status === 'ready') {
+            try {
+                // Ensure audio is unlocked
+                audioBus.resume();
+
+                setStatus('running');
+                const script = PYTHON_SCRIPTS[scriptName];
+                await pyodideRef.current.runPythonAsync(script);
+            } catch (err) {
+                console.error("Right after start:", err);
+                setStatus('error');
+                setError("Failed to start game script");
+            }
+        }
+    };
 
     const handleRetry = () => {
         if (pyodideRef.current) {
             try {
                 pyodideRef.current.runPython('reset_game()');
                 setIsGameOver(false);
-                // Ensure focus returns to canvas interaction if needed
             } catch (e) {
                 console.error("Failed to retry:", e);
             }
         }
     };
+
+    const controls = GAME_CONTROLS[scriptName] || { desc: "GLHF", keys: [] };
 
     return (
         <div style={{
@@ -160,39 +183,85 @@ except:
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: '#000000',
-            position: 'relative'
+            position: 'relative',
+            overflow: 'hidden'
         }}>
             {/* Loading Video Overlay */}
-            {/* We render if loading OR if running (to allow fade out transition) */}
-            {(status === 'loading' || (status === 'running' && showLoadingOverlay)) && (
+            {status === 'loading' && (
                 <div style={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    zIndex: 20,
-                    opacity: status === 'running' ? 0 : 1,
-                    visibility: status === 'running' ? 'hidden' : 'visible',
-                    transition: 'opacity 1.5s ease-out, visibility 0s linear 1.5s',
-                    pointerEvents: 'none',
-                    backgroundColor: 'black',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
+                    top: 0, left: 0, width: '100%', height: '100%',
+                    zIndex: 20, backgroundColor: 'black',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
                 }}>
                     <video
                         src="/gameloading.mp4"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                        }}
+                        autoPlay muted loop playsInline
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
+                </div>
+            )}
+
+            {/* CONTROLS / READY SCREEN */}
+            {status === 'ready' && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0, left: 0, width: '100%', height: '100%',
+                    zIndex: 15,
+                    backgroundColor: 'rgba(0,0,0,0.95)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--primary)',
+                    padding: '20px',
+                    textAlign: 'center'
+                }}>
+                    <h1 style={{
+                        fontSize: '32px',
+                        marginBottom: '10px',
+                        textTransform: 'uppercase',
+                        textShadow: '2px 2px 0px #888'
+                    }}>
+                        {scriptName}.EXE
+                    </h1>
+
+                    <div style={{
+                        border: '2px dashed var(--primary)',
+                        padding: '20px',
+                        marginBottom: '30px',
+                        background: 'rgba(0, 255, 65, 0.1)'
+                    }}>
+                        <p style={{ marginBottom: '20px', fontSize: '18px', color: '#fff' }}>{controls.desc}</p>
+                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                            {controls.keys.map((key, i) => (
+                                <li key={i} style={{ marginBottom: '8px', fontFamily: 'monospace', fontSize: '16px' }}>{key}</li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <button
+                        onClick={handleStartGame}
+                        className="blink-btn"
+                        style={{
+                            fontSize: '24px',
+                            padding: '10px 40px',
+                            backgroundColor: 'var(--primary)',
+                            color: 'black',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            fontFamily: 'inherit',
+                            boxShadow: '0 0 15px var(--primary)'
+                        }}
+                    >
+                        START GAME
+                    </button>
+
+                    <style>{`
+                        .blink-btn { animation: pulse-btn 1.5s infinite; }
+                        @keyframes pulse-btn { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+                    `}</style>
                 </div>
             )}
 

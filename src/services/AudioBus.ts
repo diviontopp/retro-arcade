@@ -134,6 +134,13 @@ class AudioBus {
         }
     }
 
+    public async resume() {
+        await this.ensureContext();
+        if (this.bgm && this.bgm.paused) {
+            this.bgm.play().catch(e => console.log("Resume play failed", e));
+        }
+    }
+
     public playTrack(index: number) {
         if (!this.bgm) this.playBGM();
         if (index >= 0 && index < BGM_PLAYLIST.length) {
