@@ -19,8 +19,8 @@ function App() {
   const [isBooting, setIsBooting] = useState(true);
   const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number; height?: number }[]>([]);
   const [showParticles, setShowParticles] = useState(false);
-  const [backgroundType, setBackgroundType] = useState<string>('void');
   const [showAvatar, setShowAvatar] = useState(true);
+  const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS'>('ABOUT');
 
   const getWindowConfig = (type: string) => {
     const configs: Record<string, { title: string; width: number; height: number }> = {
@@ -36,10 +36,11 @@ function App() {
       PET: { title: 'pet.exe', width: 300, height: 280 },
       COMIC: { title: 'comic.exe', width: 320, height: 400 },
       HOME: { title: 'home.exe', width: 320, height: 280 },
-      BG_CYCLE: { title: 'bg_cycle.exe', width: 300, height: 250 },
+
       AVATAR_TOGGLE: { title: 'avatar.exe', width: 300, height: 200 },
       RANDOM: { title: 'random.exe', width: 300, height: 250 },
       GALLERY: { title: 'gallery.exe', width: 360, height: 420 },
+      TECH_STACK: { title: 'tech_stack.info', width: 350, height: 400 },
       // Games
       SNAKE: { title: 'snake.py', width: 660, height: 530 },
       TETRIS: { title: 'tetris.py', width: 660, height: 530 },
@@ -58,18 +59,30 @@ function App() {
       return;
     }
 
-    if (type === 'BG_CYCLE') {
-      // Cycle through pastel backgrounds
-      const bgs = ['pastel-yellow', 'pastel-pink', 'pastel-purple', 'pastel-cyan', 'void'];
-      setBackgroundType(prev => {
-        const nextIndex = (bgs.indexOf(prev) + 1) % bgs.length;
-        return bgs[nextIndex];
-      });
-      return;
-    }
+
 
     if (type === 'AVATAR_TOGGLE') {
       setShowAvatar(prev => !prev);
+      return;
+    }
+
+    if (type === 'TECH_STACK') {
+      setMainContentMode('TECH_STACK');
+      return;
+    }
+
+    if (type === 'MUSIC') {
+      setMainContentMode('MUSIC');
+      return;
+    }
+
+    if (type === 'PHOTOS') {
+      setMainContentMode('PHOTOS');
+      return;
+    }
+
+    if (type === 'about') {
+      setMainContentMode('ABOUT');
       return;
     }
 
@@ -108,6 +121,8 @@ function App() {
       case 'COMIC': return <ComicApp />;
       case 'HOME': return <HomeApp />;
       case 'GALLERY': return <GalleryApp />;
+      case 'GALLERY': return <GalleryApp />;
+      // TECH_STACK removed - handled by main content mode
       case 'BG_CYCLE': return <div style={{ padding: '20px' }}>background cycle<br />[coming soon]</div>;
       case 'AVATAR_TOGGLE': return <div style={{ padding: '20px' }}>avatar toggle<br />[coming soon]</div>;
       // Games
@@ -120,16 +135,7 @@ function App() {
     }
   };
 
-  // Background Color Map (Pastel only, no green)
-  const bgColors: Record<string, string> = {
-    'pastel-yellow': '#FFFF99',
-    'pastel-pink': '#FFB7B2',
-    'pastel-purple': '#E0B0FF',
-    'pastel-cyan': '#E0FFFF',
-    'void': '#000000'
-  };
-  // Default to pastel-yellow
-  const currentBgColor = bgColors[backgroundType] || '#FFFF99';
+
 
   // Show boot screen first
   if (isBooting) {
@@ -182,7 +188,7 @@ function App() {
           backgroundPosition: 'center'
         }}>
           {/* Dark overlay for readability if needed, or just content */}
-          <ContentWindow />
+          <ContentWindow mode={mainContentMode} />
 
           {/* Floating Windows */}
           {windows.map(win => (

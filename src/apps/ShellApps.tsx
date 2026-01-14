@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import audioBus from '../services/AudioBus';
 
 // ============= SEARCH APP (Aoogle) - Matching insect.christmas =============
 export const SearchApp: React.FC = () => {
@@ -450,29 +451,161 @@ export const ClockApp: React.FC = () => {
     );
 };
 
-// ============= PET GAME (Tamagotchi-style) =============
+// ============= PET GAME (Cyber Dog) =============
 export const PetApp: React.FC = () => {
     const [hunger, setHunger] = useState(80);
     const [happy, setHappy] = useState(90);
-    const [pet] = useState(['(◕ᴗ◕✿)', '(◕︵◕)', '(◕ω◕)', 'zzZ (－ω－)']);
+    const [action, setAction] = useState<'idle' | 'eating' | 'playing'>('idle');
 
-    const getPetFace = () => {
-        if (hunger < 30) return pet[1];
-        if (happy < 30) return pet[1];
-        if (hunger < 50 || happy < 50) return pet[2];
-        return pet[0];
+    // Auto-decay stats
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setHunger(h => Math.max(0, h - 1));
+            setHappy(h => Math.max(0, h - 1));
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const handleFeed = () => {
+        if (action !== 'idle') return;
+        setAction('eating');
+        audioBus.trigger('powerup'); // Use a generic positive sound
+        setTimeout(() => {
+            setHunger(h => Math.min(100, h + 30));
+            setAction('idle');
+        }, 2000);
+    };
+
+    const handlePlay = () => {
+        if (action !== 'idle') return;
+        setAction('playing');
+        audioBus.trigger('jump');
+        setTimeout(() => {
+            setHappy(h => Math.min(100, h + 30));
+            setAction('idle');
+        }, 2000);
     };
 
     return (
-        <div style={{ padding: '15px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '15px' }}>{getPetFace()}</div>
-            <div style={{ fontSize: '12px', marginBottom: '10px' }}>
-                hunger: {hunger}% | happy: {happy}%
+        <div style={{ padding: '15px', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            {/* Stats Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '12px' }}>
+                <div style={{ color: hunger < 30 ? 'coral' : 'var(--primary)' }}>
+                    HUNGER:
+                    <div style={{ width: '80px', height: '8px', border: '1px solid var(--primary)', display: 'inline-block', marginLeft: '5px' }}>
+                        <div style={{ width: `${hunger}%`, height: '100%', background: hunger < 30 ? 'coral' : 'var(--primary)' }} />
+                    </div>
+                </div>
+                <div style={{ color: happy < 30 ? 'coral' : 'var(--primary)' }}>
+                    HAPPY:
+                    <div style={{ width: '80px', height: '8px', border: '1px solid var(--primary)', display: 'inline-block', marginLeft: '5px' }}>
+                        <div style={{ width: `${happy}%`, height: '100%', background: happy < 30 ? 'coral' : 'var(--primary)' }} />
+                    </div>
+                </div>
             </div>
+
+            {/* Main Stage */}
+            <div style={{
+                flex: 1,
+                backgroundColor: '#001100',
+                border: '2px solid var(--primary)',
+                marginBottom: '20px',
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden'
+            }}>
+                <CyberDog state={action} happy={happy > 30} />
+
+                {/* Status/Speech Bubble */}
+                {hunger < 30 && action === 'idle' && (
+                    <div style={{ position: 'absolute', top: '10px', right: '10px', animation: 'bounce 1s infinite' }}>🍖?</div>
+                )}
+                {happy < 30 && action === 'idle' && hunger >= 30 && (
+                    <div style={{ position: 'absolute', top: '10px', right: '10px', animation: 'bounce 1s infinite' }}>🥎?</div>
+                )}
+            </div>
+
+            {/* Controls */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                <button style={{ padding: '10px 16px', border: '3px solid var(--primary)', background: 'black', color: 'var(--primary)', cursor: 'pointer', fontSize: '14px' }} onClick={() => setHunger(Math.min(100, hunger + 20))}>🍕 feed</button>
-                <button style={{ padding: '10px 16px', border: '3px solid var(--primary)', background: 'black', color: 'var(--primary)', cursor: 'pointer', fontSize: '14px' }} onClick={() => setHappy(Math.min(100, happy + 20))}>🎮 play</button>
+                <button
+                    style={{
+                        padding: '10px 16px',
+                        border: '2px solid var(--primary)',
+                        background: action === 'eating' ? 'var(--primary)' : 'black',
+                        color: action === 'eating' ? 'black' : 'var(--primary)',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        flex: 1
+                    }}
+                    onClick={handleFeed}
+                    disabled={action !== 'idle'}
+                >
+                    {action === 'eating' ? 'YUM...' : 'FEED'}
+                </button>
+                <button
+                    style={{
+                        padding: '10px 16px',
+                        border: '2px solid var(--primary)',
+                        background: action === 'playing' ? 'var(--primary)' : 'black',
+                        color: action === 'playing' ? 'black' : 'var(--primary)',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        flex: 1
+                    }}
+                    onClick={handlePlay}
+                    disabled={action !== 'idle'}
+                >
+                    {action === 'playing' ? 'WEE!' : 'PLAY'}
+                </button>
             </div>
+            <style>{`
+                @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+                @keyframes wag { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(10deg); } }
+                @keyframes chomp { 0%, 100% { height: 4px; } 50% { height: 12px; } }
+            `}</style>
+        </div>
+    );
+};
+
+// Cyber Dog Sprite Component (JS Animation)
+const CyberDog: React.FC<{ state: 'idle' | 'eating' | 'playing'; happy: boolean }> = ({ state, happy }) => {
+    const [frame, setFrame] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setFrame(f => (f + 1) % 4);
+        }, 200); // 5 FPS
+        return () => clearInterval(interval);
+    }, []);
+
+    const rowMap = { idle: 'row0', eating: 'row1', playing: 'row3' };
+
+    // Construct path to current frame
+    const imgSrc = `/pets/dog_${rowMap[state]}_${frame}.png`;
+
+    return (
+        <div style={{
+            width: '128px',
+            height: '128px',
+            position: 'relative',
+            filter: happy ? 'drop-shadow(0 0 5px var(--primary))' : 'hue-rotate(180deg) drop-shadow(0 0 2px blue)'
+        }}>
+            <img
+                src={imgSrc}
+                alt="Cyber Dog"
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    imageRendering: 'pixelated',
+                    display: 'block'
+                }}
+            />
+
+            {/* <style> block removed as unused */}
+            <style>{`
+            `}</style>
         </div>
     );
 };
@@ -489,9 +622,9 @@ export const ComicApp: React.FC = () => (
   │ ARCADE   │
   │  ◇  ◇   │
   │   ──    │
-  │  \\__/   │
+  │  \\__ /   │
   └──────────┘
-            `}</pre>
+`}</pre>
         </div>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
             <button style={{ padding: '8px 16px', border: '3px solid var(--primary)', background: 'black', color: 'var(--primary)', cursor: 'pointer', fontSize: '14px' }}>◀ prev</button>

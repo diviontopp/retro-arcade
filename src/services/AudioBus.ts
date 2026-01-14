@@ -18,14 +18,28 @@ const SFX_FILES: Record<string, string> = {
     'startup': '/audio/gamenotif.wav',
     // Fallbacks or additional mappings
     'enemy_hit': '/audio/arcade-space-shooter-dead-notification-272.wav',
-    'bonus': '/audio/bonusalert.wav'
+    'bonus': '/audio/bonusalert.wav',
+    'powerup': '/audio/bonusalert.wav'
 };
 
-const BGM_PLAYLIST = [
-    '/audio/mainmusic.mp3',
-    '/audio/chip-mode-danijel-zambo-main-version-1431-02-05.mp3',
-    '/audio/arcadevocals.mp3',
-    '/audio/collectionofarcadesounds.mp3'
+interface Track {
+    title: string;
+    src: string;
+}
+
+const BGM_PLAYLIST: Track[] = [
+    { title: 'Main Theme', src: '/audio/mainmusic.mp3' },
+    { title: 'A Night Of Dizzy Spells', src: '/audio/A_Night_Of_Dizzy_Spells.mp3' },
+    { title: 'Underclocked', src: '/audio/Underclocked.mp3' },
+    { title: 'Chibi Ninja', src: '/audio/Chibi_Ninja.mp3' },
+    { title: 'We\'re the Resistors', src: '/audio/Were_the_Resistors.mp3' },
+    { title: 'Jumpshot', src: '/audio/Jumpshot.mp3' },
+    { title: 'All of Us', src: '/audio/All_of_Us.mp3' },
+    { title: 'Searching', src: '/audio/Searching.mp3' },
+    { title: 'Ascending', src: '/audio/Ascending.mp3' },
+    { title: 'Arpanauts', src: '/audio/Arpanauts.mp3' },
+    { title: 'Digital Native', src: '/audio/Digital_Native.mp3' },
+    { title: 'Chip Mode', src: '/audio/chip-mode-danijel-zambo-main-version-1431-02-05.mp3' }
 ];
 
 class AudioBus {
@@ -74,7 +88,7 @@ class AudioBus {
     public playBGM() {
         if (this.bgm) return;
 
-        this.bgm = new Audio(BGM_PLAYLIST[this.currentTrackIndex]);
+        this.bgm = new Audio(BGM_PLAYLIST[this.currentTrackIndex].src);
         this.bgm.volume = this.volume;
         this.bgm.loop = false; // We handle loop manually to go to next track
 
@@ -82,7 +96,7 @@ class AudioBus {
         this.bgm.addEventListener('ended', () => {
             this.currentTrackIndex = (this.currentTrackIndex + 1) % BGM_PLAYLIST.length;
             if (this.bgm) {
-                this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex];
+                this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex].src;
                 this.bgm.play().catch(e => console.log("Autoplay blocked/waiting:", e));
             }
         });
@@ -120,18 +134,37 @@ class AudioBus {
         }
     }
 
+    public playTrack(index: number) {
+        if (!this.bgm) this.playBGM();
+        if (index >= 0 && index < BGM_PLAYLIST.length) {
+            this.currentTrackIndex = index;
+            if (this.bgm) {
+                this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex].src;
+                this.bgm.play();
+            }
+        }
+    }
+
     public nextTrack() {
         if (!this.bgm) return;
         this.currentTrackIndex = (this.currentTrackIndex + 1) % BGM_PLAYLIST.length;
-        this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex];
+        this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex].src;
         this.bgm.play();
     }
 
     public prevTrack() {
         if (!this.bgm) return;
         this.currentTrackIndex = (this.currentTrackIndex - 1 + BGM_PLAYLIST.length) % BGM_PLAYLIST.length;
-        this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex];
+        this.bgm.src = BGM_PLAYLIST[this.currentTrackIndex].src;
         this.bgm.play();
+    }
+
+    public getPlaylist() {
+        return BGM_PLAYLIST;
+    }
+
+    public getCurrentTrackIndex() {
+        return this.currentTrackIndex;
     }
 
     public setVolume(val: number) {

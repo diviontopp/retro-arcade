@@ -1,4 +1,11 @@
 /* Global CSS Variables and Animations */
+@font-face {
+  font-family: 'ByteBounce';
+  src: url('../assets/bytebounce/ByteBounce.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   /* Color Palette - Chartreuse primary */
   --color-chartreuse: #7fff00;

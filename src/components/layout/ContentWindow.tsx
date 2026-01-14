@@ -1,7 +1,20 @@
 import React from 'react';
 
 // Main content window - the "about" page like insect.christmas
-const ContentWindow: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
+const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS'; children?: React.ReactNode }> = ({ mode = 'ABOUT', children }) => {
+    let content = children;
+    if (!content) {
+        if (mode === 'TECH_STACK') content = <TechStackContent />;
+        else if (mode === 'MUSIC') content = <MusicContent />;
+        else if (mode === 'PHOTOS') content = <PhotosContent />;
+        else content = <DefaultContent />;
+    }
+
+    let title = 'cyber.arcade/';
+    if (mode === 'TECH_STACK') title = 'tech_stack.info';
+    else if (mode === 'MUSIC') title = 'audio_player.exe';
+    else if (mode === 'PHOTOS') title = 'gallery_viewer.exe';
+
     return (
         <div style={{
             border: '4px solid var(--primary)',
@@ -21,7 +34,7 @@ const ContentWindow: React.FC<{ children?: React.ReactNode }> = ({ children }) =
                 backgroundColor: 'var(--primary)',
                 color: 'black'
             }}>
-                <span>ʚïɞ cyber.arcade/</span>
+                <span>ʚïɞ {title}</span>
                 <button style={{
                     background: 'red',
                     color: 'white',
@@ -38,7 +51,188 @@ const ContentWindow: React.FC<{ children?: React.ReactNode }> = ({ children }) =
                 overflow: 'auto',
                 padding: '15px'
             }}>
-                {children || <DefaultContent />}
+                {content}
+            </div>
+        </div>
+    );
+};
+
+const TechStackContent: React.FC = () => (
+    <div style={{ padding: '10px', color: 'var(--primary)' }}>
+        <h2 style={{ color: 'slateblue', marginBottom: '20px', textTransform: 'uppercase', borderBottom: '2px solid var(--primary)', paddingBottom: '10px' }}>Technology Stack</h2>
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+            <li style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', fontSize: '24px' }}>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" alt="React" style={{ width: '64px', height: '64px', marginRight: '30px' }} />
+                <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '28px' }}>React</div>
+                    <div style={{ fontSize: '18px', color: 'coral' }}>UI Library</div>
+                </div>
+            </li>
+            <li style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', fontSize: '24px' }}>
+                <img src="https://vitejs.dev/logo.svg" alt="Vite" style={{ width: '64px', height: '64px', marginRight: '30px' }} />
+                <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '28px' }}>Vite</div>
+                    <div style={{ fontSize: '18px', color: 'coral' }}>Build Tool</div>
+                </div>
+            </li>
+            <li style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', fontSize: '24px' }}>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/4c/Typescript_logo_2020.svg" alt="TypeScript" style={{ width: '64px', height: '64px', marginRight: '30px' }} />
+                <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '28px' }}>TypeScript</div>
+                    <div style={{ fontSize: '18px', color: 'coral' }}>Type Safety</div>
+                </div>
+            </li>
+            <li style={{ marginBottom: '30px', display: 'flex', alignItems: 'center', fontSize: '24px' }}>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg" alt="Python" style={{ width: '64px', height: '64px', marginRight: '30px' }} />
+                <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '28px' }}>Python (Pyodide)</div>
+                    <div style={{ fontSize: '18px', color: 'coral' }}>In-browser Python Runtime</div>
+                </div>
+            </li>
+        </ul>
+    </div>
+);
+
+import audioBus from '../../services/AudioBus';
+
+const MusicContent: React.FC = () => {
+    // Force re-render on mount to match current audio state
+    const [currentTrack, setCurrentTrack] = React.useState(audioBus.getCurrentTrackIndex());
+    const playlist = audioBus.getPlaylist();
+
+    // Polling to update highlight when track changes automatically
+    React.useEffect(() => {
+        const interval = setInterval(() => {
+            const index = audioBus.getCurrentTrackIndex();
+            if (index !== currentTrack) {
+                setCurrentTrack(index);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [currentTrack]);
+
+    const handlePlay = (index: number) => {
+        audioBus.playTrack(index);
+        setCurrentTrack(index);
+    };
+
+    return (
+        <div style={{ padding: '10px', color: 'var(--primary)' }}>
+            <h2 style={{ color: 'slateblue', marginBottom: '20px', textTransform: 'uppercase', borderBottom: '2px solid var(--primary)', paddingBottom: '10px' }}>
+                Music Player
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {playlist.map((track, index) => {
+                    const isPlaying = index === currentTrack;
+                    return (
+                        <div
+                            key={index}
+                            onClick={() => handlePlay(index)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '15px',
+                                border: isPlaying ? '2px solid var(--primary)' : '2px dashed #444',
+                                backgroundColor: isPlaying ? 'rgba(127, 255, 0, 0.1)' : 'transparent',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                position: 'relative'
+                            }}
+                            className={isPlaying ? "glow" : ""}
+                        >
+                            <div style={{
+                                fontSize: '24px',
+                                marginRight: '15px',
+                                width: '30px',
+                                textAlign: 'center'
+                            }}>
+                                {isPlaying ? '▶' : (index + 1)}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{
+                                    fontSize: '20px',
+                                    fontWeight: 'bold',
+                                    color: isPlaying ? 'var(--primary)' : '#888'
+                                }}>
+                                    {track.title}
+                                </div>
+                                <div style={{ fontSize: '12px', color: 'slateblue', marginTop: '4px' }}>
+                                    {isPlaying ? 'NOW PLAYING...' : 'CLICK TO PLAY'}
+                                </div>
+                            </div>
+                            {isPlaying && (
+                                <div style={{
+                                    width: '10px',
+                                    height: '10px',
+                                    backgroundColor: 'coral',
+                                    borderRadius: '50%',
+                                    animation: 'pulse-glow 1s infinite'
+                                }} />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            <div style={{ marginTop: '30px', fontSize: '14px', color: '#666', fontStyle: 'italic', borderTop: '1px dotted #444', paddingTop: '10px' }}>
+                * Tracks will automatically play in sequence. Click any track to jump.
+            </div>
+        </div>
+    );
+};
+
+const PhotosContent: React.FC = () => {
+    // Generate array of 30 items
+    const photos = Array.from({ length: 30 }, (_, i) => i + 1);
+
+    return (
+        <div style={{ padding: '10px', color: 'var(--primary)' }}>
+            <h2 style={{ color: 'slateblue', marginBottom: '20px', textTransform: 'uppercase', borderBottom: '2px solid var(--primary)', paddingBottom: '10px' }}>
+                Retro Gallery
+            </h2>
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '15px'
+            }}>
+                {photos.map(num => (
+                    <div key={num} style={{
+                        border: '2px solid var(--primary)',
+                        padding: '4px',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        transition: 'transform 0.2s',
+                        cursor: 'pointer'
+                    }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                        <img
+                            src={`/photos/p${num}.jpg`}
+                            alt={`Retro Arcade ${num}`}
+                            style={{
+                                width: '100%',
+                                height: '150px',
+                                objectFit: 'cover',
+                                display: 'block'
+                            }}
+                            onError={(e) => {
+                                // Fallback if image not found
+                                e.currentTarget.src = 'https://via.placeholder.com/300x200?text=IMG_ERROR';
+                            }}
+                        />
+                        <div style={{
+                            textAlign: 'center',
+                            fontSize: '10px',
+                            marginTop: '4px',
+                            color: 'slateblue'
+                        }}>
+                            IMG_{String(num).padStart(3, '0')}.JPG
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#666' }}>
+                Total Images: 30 | Source: Archive
             </div>
         </div>
     );

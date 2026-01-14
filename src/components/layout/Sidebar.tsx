@@ -16,10 +16,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
 
     // Additional "fake" links to match the density of the reference image
     const links = [
-        { label: 'about', icon: '📜' },
-        { label: 'art', icon: '🖌️' },
-        { label: 'music', icon: '🎵' },
-        { label: 'photos', icon: '🖼️' },
+        { label: 'about', icon: '📜', id: 'about' },
+        { label: 'tech stack', icon: '💻', id: 'TECH_STACK' },
+        { label: 'music', icon: '🎵', id: 'MUSIC' },
+        { label: 'photos', icon: '🖼️', id: 'PHOTOS' },
     ];
 
     const SidebarItem = ({ label, icon, onClick }: { label: string, icon: string, onClick?: () => void }) => (
@@ -86,6 +86,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
                     key={i}
                     label={link.label}
                     icon={link.icon}
+                    onClick={() => link.id && onOpenGame && onOpenGame(link.id)}
                 />
             ))}
 
