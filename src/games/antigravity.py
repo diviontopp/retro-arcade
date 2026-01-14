@@ -129,5 +129,12 @@ js.window.requestAnimationFrame(loop)
 
 def cleanup():
     global game_running
+    if not game_running:
+        return
+    
     game_running = False
-    js.document.removeEventListener('keydown', on_key)
+    
+    try:
+        js.document.removeEventListener('keydown', on_key)
+    except Exception:
+        pass

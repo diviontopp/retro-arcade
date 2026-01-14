@@ -724,10 +724,32 @@ proxy_loop = create_proxy(loop)
 game_req_id = js.window.requestAnimationFrame(proxy_loop)
 
 def cleanup():
+    if game.state == "VIDE":
+        return
+    
     game.state = "VIDE"
-    js.window.cancelAnimationFrame(game_req_id)
-    js.document.removeEventListener('keydown', down_proxy)
-    js.document.removeEventListener('keyup', up_proxy)
-    down_proxy.destroy()
-    up_proxy.destroy()
-    proxy_loop.destroy()
+    
+    try:
+        js.window.cancelAnimationFrame(game_req_id)
+    except Exception:
+        pass
+    
+    try:
+        if 'down_proxy' in globals():
+            js.document.removeEventListener('keydown', down_proxy)
+            down_proxy.destroy()
+    except Exception:
+        pass
+    
+    try:
+        if 'up_proxy' in globals():
+            js.document.removeEventListener('keyup', up_proxy)
+            up_proxy.destroy()
+    except Exception:
+        pass
+    
+    try:
+        if 'proxy_loop' in globals():
+            proxy_loop.destroy()
+    except Exception:
+        pass
