@@ -64,10 +64,22 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
             padding: '10px',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: 'rgba(0,0,0,0.8)', // Restoring dark overlay
+            backgroundColor: 'rgba(0,0,0,0.9)', // Restoring darker overlay
             imageRendering: 'pixelated',
             overflowY: 'auto'
         }}>
+            {/* Header for Games */}
+            <div style={{
+                color: 'var(--primary)',
+                marginBottom: '10px',
+                border: '4px solid var(--primary)',
+                padding: '4px 8px',
+                fontWeight: 'bold',
+                backgroundColor: 'black'
+            }}>
+                games.dir
+            </div>
+
             {/* Game List */}
             {games.map(game => (
                 <SidebarItem
@@ -77,6 +89,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
                     onClick={() => onOpenGame && onOpenGame(game.id)}
                 />
             ))}
+
+            {/* Controls Button */}
+            <SidebarItem
+                label="controls"
+                icon="🎮"
+                onClick={() => onOpenGame && onOpenGame('CONTROLS')}
+            />
 
             <div style={{ height: '20px' }}></div>
 

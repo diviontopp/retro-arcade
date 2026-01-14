@@ -7,7 +7,7 @@
  * Provides canvas element and cleanup on unmount.
  */
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 
 // Import Python scripts as raw strings using Vite's ?raw suffix
 import snakeScript from '../games/snake.py?raw';
@@ -18,6 +18,7 @@ import antigravityScript from '../games/antigravity.py?raw';
 
 interface PyodideRunnerProps {
     scriptName: string;
+    onClose?: () => void;
 }
 
 // Python script mapping
@@ -29,20 +30,23 @@ const PYTHON_SCRIPTS: Record<string, string> = {
     antigravity: antigravityScript,
 };
 
-const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName }) => {
+const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [status, setStatus] = React.useState<'loading' | 'running' | 'error'>('loading');
-    const [error, setError] = React.useState<string | null>(null);
-    const [isGameOver, setIsGameOver] = React.useState(false);
+    const [status, setStatus] = useState<'loading' | 'running' | 'error'>('loading');
+    const [error, setError] = useState<string | null>(null);
+    const [isGameOver, setIsGameOver] = useState(false);
+    const [showLoadingOverlay, setShowLoadingOverlay] = useState(true);
 
     const pyodideRef = useRef<any>(null);
 
-    React.useEffect(() => {
+    // Initial load effect
+    useEffect(() => {
         let mounted = true;
 
         const loadAndRun = async () => {
             try {
                 setStatus('loading');
+                setShowLoadingOverlay(true);
 
                 // Check if script exists first
                 const script = PYTHON_SCRIPTS[scriptName];
@@ -111,8 +115,22 @@ except:
         };
     }, [scriptName]);
 
+    // Cleanup overlay logic
+    useEffect(() => {
+        if (status === 'running') {
+            const timer = setTimeout(() => {
+                // We keep it mounted but hidden in CSS, so state change isn't strictly necessary for visibility,
+                // but we can toggle this if we wanted to remove it from DOM. 
+                // For now, consistent with CSS logic, we leave it true or handle logic here.
+                // Actually, let's keep it simple and rely on the CSS opacity/visibility trick.
+                setShowLoadingOverlay(false);
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [status]);
+
     // Expose setGameOver to the window object for Python to call
-    React.useEffect(() => {
+    useEffect(() => {
         (window as any).setGameOver = (state: boolean) => {
             setIsGameOver(state);
         };
@@ -144,14 +162,37 @@ except:
             backgroundColor: '#000000',
             position: 'relative'
         }}>
-            {status === 'loading' && (
+            {/* Loading Video Overlay */}
+            {/* We render if loading OR if running (to allow fade out transition) */}
+            {(status === 'loading' || (status === 'running' && showLoadingOverlay)) && (
                 <div style={{
-                    color: '#00FF41',
-                    fontFamily: 'var(--font-primary)',
-                    fontSize: '16px',
-                    textAlign: 'center'
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 20,
+                    opacity: status === 'running' ? 0 : 1,
+                    visibility: status === 'running' ? 'hidden' : 'visible',
+                    transition: 'opacity 1.5s ease-out, visibility 0s linear 1.5s',
+                    pointerEvents: 'none',
+                    backgroundColor: 'black',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                 }}>
-                    LOADING...
+                    <video
+                        src="/gameloading.mp4"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
+                    />
                 </div>
             )}
 
@@ -165,27 +206,72 @@ except:
                 style={{
                     display: status === 'running' ? 'block' : 'none',
                     border: '1px solid #00FF41',
-                    imageRendering: 'pixelated'
+                    imageRendering: 'pixelated',
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain'
                 }}
             />
 
             {status === 'running' && isGameOver && (
-                <button
-                    onClick={handleRetry}
-                    style={{
-                        marginTop: '10px',
-                        padding: '8px 20px',
-                        backgroundColor: 'var(--primary)',
-                        color: '#000',
-                        border: 'none',
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Translucent overlay
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10
+                }}>
+                    <h2 style={{
+                        color: 'red',
                         fontFamily: 'var(--font-primary)',
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    RETRY
-                </button>
+                        fontSize: '32px',
+                        marginBottom: '20px',
+                        textShadow: '2px 2px 0px black',
+                        textTransform: 'uppercase'
+                    }}>GAME OVER</h2>
+
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <button
+                            onClick={handleRetry}
+                            style={{
+                                padding: '8px 20px',
+                                backgroundColor: 'var(--primary)',
+                                color: '#000',
+                                border: 'none',
+                                fontFamily: 'var(--font-primary)',
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            RETRY
+                        </button>
+
+                        {onClose && (
+                            <button
+                                onClick={onClose}
+                                style={{
+                                    padding: '8px 20px',
+                                    backgroundColor: 'red',
+                                    color: 'white',
+                                    border: 'none',
+                                    fontFamily: 'var(--font-primary)',
+                                    fontSize: '18px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                CLOSE
+                            </button>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -14,7 +14,7 @@ const AvatarPanel: React.FC = () => {
             padding: '0', // Remove padding to max size
             position: 'relative',
             minWidth: '350px',
-            height: 'calc(100vh - 60px - 200px)',
+            height: '100%', // Fill full height so video goes behind chatbox
             overflow: 'hidden'
         }}>
             {/* Green Header Line */}
@@ -22,8 +22,8 @@ const AvatarPanel: React.FC = () => {
                 width: '100%',
                 height: '4px',
                 backgroundColor: 'var(--primary)',
-                marginBottom: '5px', // Reduced spacing
-                marginTop: '20px'    // Pushed down
+                marginBottom: '5px',
+                marginTop: '0px'    // Aligned with main window header
             }}></div>
 
             {/* Animated Gaming Avatar */}

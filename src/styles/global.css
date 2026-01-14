@@ -6,6 +6,13 @@
   font-style: normal;
 }
 
+@font-face {
+  font-family: 'LowresPixel';
+  src: url('/fonts/LowresPixel-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   /* Color Palette - Chartreuse primary */
   --color-chartreuse: #7fff00;
@@ -21,7 +28,7 @@
   --color-border-primary: var(--color-chartreuse);
 
   /* Typography */
-  --font-primary: "Pixelify Sans", "Courier New", monospace;
+  --font-primary: "LowresPixel", "Pixelify Sans", "Courier New", monospace;
 }
 
 * {
@@ -160,8 +167,8 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-void-black);
-  border: 2px solid var(--primary);
+  background: transparent;
+  border: none;
 }
 
 ::-webkit-scrollbar-thumb {

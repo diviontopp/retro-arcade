@@ -168,7 +168,9 @@ const ChatBox: React.FC = () => {
             width: '96%',
             // Original Style Restored
             border: '4px solid var(--primary)',
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(3px)',
+            WebkitBackdropFilter: 'blur(3px)',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 100,
@@ -178,8 +180,8 @@ const ChatBox: React.FC = () => {
         }}>
             {/* Header */}
             <div style={{
-                backgroundColor: 'var(--primary)',
-                color: 'black',
+                backgroundColor: 'black',
+                color: 'var(--primary)',
                 padding: '4px 8px',
                 fontSize: '14px',
                 fontWeight: 'bold',
@@ -191,14 +193,15 @@ const ChatBox: React.FC = () => {
                 <span>_</span>
             </div>
 
-            {/* Messages Area - Dark Background, Green/Orange Text */}
+            {/* Messages Area - Transparent Background, Green/Orange Text */}
             <div style={{
                 height: '140px',
                 overflowY: 'auto',
                 padding: '12px',
                 fontSize: '14px',
                 lineHeight: '1.4',
-                color: '#ddd'
+                color: '#ddd',
+                backgroundColor: 'transparent'
             }}>
                 {messages.map((msg, i) => (
                     <div key={i} style={{ marginBottom: '8px' }}>
@@ -221,7 +224,7 @@ const ChatBox: React.FC = () => {
                 borderTop: '2px solid var(--primary)',
                 display: 'flex',
                 height: '40px',
-                backgroundColor: 'black'
+                backgroundColor: 'rgba(0, 0, 0, 0.3)'
             }}>
                 <input
                     type="text"

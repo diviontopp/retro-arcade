@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Taskbar from './components/layout/Taskbar';
 import ContentWindow from './components/layout/ContentWindow';
@@ -17,11 +17,18 @@ import audioBus from './services/AudioBus';
 
 function App() {
   const [isBooting, setIsBooting] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 5.0;
+    }
+  }, []);
+
   const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number; height?: number }[]>([]);
   const [showParticles, setShowParticles] = useState(false);
   const [showAvatar, setShowAvatar] = useState(true);
-  const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS'>('ABOUT');
-
+  const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS'>('ABOUT');
   const getWindowConfig = (type: string) => {
     const configs: Record<string, { title: string; width: number; height: number }> = {
       CALC: { title: 'calc.exe', width: 280, height: 400 },
@@ -59,8 +66,6 @@ function App() {
       return;
     }
 
-
-
     if (type === 'AVATAR_TOGGLE') {
       setShowAvatar(prev => !prev);
       return;
@@ -86,6 +91,11 @@ function App() {
       return;
     }
 
+    if (type === 'CONTROLS') {
+      setMainContentMode('CONTROLS');
+      return;
+    }
+
     // Check if window already exists
     if (windows.find(w => w.type === type)) return;
 
@@ -106,7 +116,7 @@ function App() {
     setWindows(windows.filter(w => w.id !== id));
   };
 
-  const renderAppContent = (type: string) => {
+  const renderAppContent = (type: string, onClose: () => void) => {
     switch (type) {
       case 'CALC': return <CalcApp />;
       case 'TERMINAL': return <TerminalApp />;
@@ -121,16 +131,15 @@ function App() {
       case 'COMIC': return <ComicApp />;
       case 'HOME': return <HomeApp />;
       case 'GALLERY': return <GalleryApp />;
-      case 'GALLERY': return <GalleryApp />;
       // TECH_STACK removed - handled by main content mode
       case 'BG_CYCLE': return <div style={{ padding: '20px' }}>background cycle<br />[coming soon]</div>;
       case 'AVATAR_TOGGLE': return <div style={{ padding: '20px' }}>avatar toggle<br />[coming soon]</div>;
       // Games
-      case 'SNAKE': return <PyodideRunner scriptName="snake" />;
-      case 'TETRIS': return <PyodideRunner scriptName="tetris" />;
-      case 'BREAKOUT': return <PyodideRunner scriptName="breakout" />;
-      case 'INVADERS': return <PyodideRunner scriptName="invaders" />;
-      case 'ANTIGRAV': return <PyodideRunner scriptName="antigravity" />;
+      case 'SNAKE': return <PyodideRunner scriptName="snake" onClose={onClose} />;
+      case 'TETRIS': return <PyodideRunner scriptName="tetris" onClose={onClose} />;
+      case 'BREAKOUT': return <PyodideRunner scriptName="breakout" onClose={onClose} />;
+      case 'INVADERS': return <PyodideRunner scriptName="invaders" onClose={onClose} />;
+      case 'ANTIGRAV': return <PyodideRunner scriptName="antigravity" onClose={onClose} />;
       default: return <div style={{ padding: '20px' }}>{type.toLowerCase()}<br />[coming soon]</div>;
     }
   };
@@ -162,63 +171,100 @@ function App() {
         position: 'relative',
         zIndex: 1
       }}>
-        {/* Left Sidebar - Games (Wrapped for BG image) */}
+        {/* Global Video Background - Zoomed */}
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          src="/webload.mp4"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            objectPosition: 'center',
+            zIndex: 0,
+            opacity: 0.8,
+          }}
+        />
+
+        {/* Left Sidebar */}
         <div style={{
-          backgroundColor: 'black',
-          backgroundImage: 'linear-gradient(rgba(0, 20, 0, 0.75), rgba(0, 20, 0, 0.75)), url(/pixel.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          position: 'relative',
+          backgroundColor: 'transparent',
           height: '100%',
           overflow: 'hidden',
           display: 'flex',
-          flexDirection: 'column'
-          // borderRight removed to avoid double border with Sidebar component
+          flexDirection: 'column',
+          zIndex: 1
         }}>
-          <Sidebar onOpenGame={openWindow} />
+          <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Sidebar onOpenGame={openWindow} />
+          </div>
         </div>
 
-        {/* Main Content Area */}
         <main style={{
           position: 'relative',
           overflow: 'hidden',
-          padding: '10px',
-          backgroundColor: 'black',
-          backgroundImage: 'linear-gradient(rgba(0, 20, 0, 0.75), rgba(0, 20, 0, 0.75)), url(/pixel.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
+          padding: '0',
+          backgroundColor: 'transparent',
+          zIndex: 1
         }}>
-          {/* Dark overlay for readability if needed, or just content */}
-          <ContentWindow mode={mainContentMode} />
+          <div style={{ position: 'relative', height: '100%' }}>
+            {/* Dark overlay for readability if needed, or just content */}
+            <ContentWindow mode={mainContentMode} />
 
-          {/* Floating Windows */}
-          {windows.map(win => (
-            <WindowFrame
-              key={win.id}
-              id={win.id}
-              title={win.title}
-              style={{
-                left: win.x,
-                top: win.y,
-                width: `${win.width}px`,
-                height: `${win.height}px`
-              }}
-              onClose={() => closeWindow(win.id)}
-            >
-              {renderAppContent(win.type)}
-            </WindowFrame>
-          ))}
+            {/* Floating Windows */}
+            {windows.map(win => (
+              <WindowFrame
+                key={win.id}
+                id={win.id}
+                title={win.title}
+                style={{
+                  left: win.x,
+                  top: win.y,
+                  width: `${win.width}px`,
+                  height: `${win.height}px`
+                }}
+                onClose={() => closeWindow(win.id)}
+              >
+                {renderAppContent(win.type, () => closeWindow(win.id))}
+              </WindowFrame>
+            ))}
+          </div>
         </main>
 
-        {/* Right Avatar Panel - conditional */}
+        {/* Right Avatar Panel */}
         {showAvatar && (
-          <div style={{ position: 'relative', transition: 'background-color 0.3s' }}>
+          <div style={{
+            position: 'relative',
+            transition: 'background-color 0.3s',
+            backgroundColor: 'transparent',
+            zIndex: 1,
+            // Green borders on left and right
+            borderLeft: '4px solid var(--primary)',
+            borderRight: '4px solid var(--primary)'
+          }}>
             <AvatarPanel />
             <ChatBox />
           </div>
         )}
 
-        {/* Bottom Taskbar */}
-        <Taskbar onOpenWindow={openWindow} />
+        {/* Bottom Taskbar - Pinned to bottom to prevent gaps */}
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          width: '100%',
+          height: '60px',
+          zIndex: 10
+        }}>
+          <Taskbar onOpenWindow={openWindow} />
+        </div>
       </div>
     </>
   );

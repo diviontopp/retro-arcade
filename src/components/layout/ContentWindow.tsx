@@ -1,12 +1,13 @@
 import React from 'react';
 
 // Main content window - the "about" page like insect.christmas
-const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS'; children?: React.ReactNode }> = ({ mode = 'ABOUT', children }) => {
+const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS'; children?: React.ReactNode }> = ({ mode = 'ABOUT', children }) => {
     let content = children;
     if (!content) {
         if (mode === 'TECH_STACK') content = <TechStackContent />;
         else if (mode === 'MUSIC') content = <MusicContent />;
         else if (mode === 'PHOTOS') content = <PhotosContent />;
+        else if (mode === 'CONTROLS') content = <ControlsContent />;
         else content = <DefaultContent />;
     }
 
@@ -14,11 +15,12 @@ const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTO
     if (mode === 'TECH_STACK') title = 'tech_stack.info';
     else if (mode === 'MUSIC') title = 'audio_player.exe';
     else if (mode === 'PHOTOS') title = 'gallery_viewer.exe';
+    else if (mode === 'CONTROLS') title = 'input_config.sys';
 
     return (
         <div style={{
             border: '4px solid var(--primary)',
-            backgroundColor: 'rgba(0,0,0,0.8)',
+            backgroundColor: 'rgba(0,0,0,0.9)',
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
@@ -31,8 +33,8 @@ const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTO
                 alignItems: 'center',
                 borderBottom: '4px solid var(--primary)',
                 padding: '4px 8px',
-                backgroundColor: 'var(--primary)',
-                color: 'black'
+                backgroundColor: 'black',
+                color: 'var(--primary)'
             }}>
                 <span>ʚïɞ {title}</span>
                 <button style={{
@@ -297,31 +299,57 @@ const DefaultContent: React.FC = () => (
             </div>
         </div>
 
-        {/* Project info */}
-        <div style={{
-            borderTop: '2px dashed var(--primary)',
-            paddingTop: '15px',
-            fontSize: '12px',
-            color: 'slateblue'
-        }}>
-            <p>project: university archives restoration</p>
-            <p>status: development build v0.1</p>
-            <p>aesthetic: late 90s / early 2000s web</p>
+
+    </div>
+);
+
+// Controls page
+const ControlsContent: React.FC = () => (
+    <div style={{ padding: '10px', color: 'var(--primary)' }}>
+        <h2 style={{ color: 'slateblue', marginBottom: '20px', textTransform: 'uppercase', borderBottom: '2px solid var(--primary)', paddingBottom: '10px' }}>
+            System Controls
+        </h2>
+
+        <div style={{ marginBottom: '20px' }}>
+            <p style={{ marginBottom: '10px' }}>Global Keybinds:</p>
+            <ul style={{ listStyle: 'none', paddingLeft: '10px', color: '#888' }}>
+                <li>[ ENTER ] - Restart Game / Confirm</li>
+                <li>[ ESC ] - Pause / Unpause</li>
+            </ul>
         </div>
 
-        {/* ASCII art divider */}
-        <pre style={{
-            marginTop: '20px',
-            fontSize: '10px',
-            color: 'var(--primary)',
-            opacity: 0.5
+        <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '18px',
+            textAlign: 'left'
         }}>
-            {`
-░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-░░ CYBER GOTHIC ARCADE - RESTORATION PROJECT ░░
-░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-`}
-        </pre>
+            <thead>
+                <tr style={{ borderBottom: '2px solid #444' }}>
+                    <th style={{ padding: '10px', color: 'coral' }}>APPLICATION</th>
+                    <th style={{ padding: '10px', color: 'coral' }}>INPUT MAP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {[
+                    { app: 'SNAKE.PY', input: 'WASD / ARROWS : Move' },
+                    { app: 'TETRIS.PY', input: 'WASD / ARROWS : Move & Rotate, SPACE : Drop' },
+                    { app: 'BREAKOUT.PY', input: 'A/D / ARROWS : Move Paddle, SPACE : Launch' },
+                    { app: 'INVADERS.PY', input: 'A/D / ARROWS : Move Ship, SPACE : Shoot' },
+                    { app: 'ANTIGRAV.PY', input: 'SPACE : Flip Gravity' },
+                    { app: 'SYSTEM', input: 'MOUSE : Interact, CLICK : Shoot/Select' }
+                ].map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #222' }}>
+                        <td style={{ padding: '15px 10px', fontWeight: 'bold' }}>{row.app}</td>
+                        <td style={{ padding: '15px 10px', fontFamily: 'monospace' }}>{row.input}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+
+        <div style={{ marginTop: '30px', fontSize: '14px', color: '#666', borderTop: '1px dotted #444', paddingTop: '10px' }}>
+            * Gamepads are detected automatically but experimental.
+        </div>
     </div>
 );
 

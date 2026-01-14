@@ -76,7 +76,7 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
             left: 0,
             width: '100vw',
             height: '100vh',
-            backgroundColor: '#000011',
+            backgroundColor: '#000000',
             color: '#00FF41',
             fontFamily: '"Courier New", monospace',
             fontSize: '14px',

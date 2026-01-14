@@ -154,8 +154,7 @@ def loop(timestamp):
         if (js.Date.now() // 200) % 2 == 0: # Flash 
              draw_cell(food, "#FF0000", inset=4) # Red food
         
-        if state == "GAMEOVER":
-            draw_text_centered("GAME OVER", canvas.height / 2, 40, "#FF0000")
+
 
     except Exception as e:
         print(f"Snake Error: {e}")

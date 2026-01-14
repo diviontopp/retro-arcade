@@ -42,9 +42,9 @@ COLS = 10
 
 # Left
 STATS_X = 24
-STATS_Y = 88
+STATS_Y = 80 # Moved up slightly
 STATS_W = 144
-STATS_H = 280
+STATS_H = 345 # Adjusted height
 
 # Right
 RIGHT_X = 376
@@ -85,25 +85,27 @@ COL_BORDER_BLUE = '#0058F8' # Blue/Indigo (Shadow)
 COL_TEXT_RED = '#E40058' # Red/Pink text
 COL_TEXT_WHITE = '#FCFCFC'
 
-# Block Colors (NES Style - Level 0-9 palette usually mostly limited)
-# We stick to the Green/Orange/Red theme or just the "Type A" green/orange/blue mix.
-# The user image shows Green Blocks with lighter green centers.
-COL_BLOCK1_OUTER = '#00B800' # Green
-COL_BLOCK1_INNER = '#B8F818' # Light Green
-COL_BLOCK1_Highlight = '#FFFFFF'
+# Block Colors (Custom)
+COL_T = '#800080' # Purple
+COL_J = '#0000FF' # Blue
+COL_Z = '#FF0000' # Red
+COL_O = '#FFFF00' # Yellow
+COL_S = '#00FF00' # Green
+COL_L = '#FFA500' # Orange
+COL_I = '#00FFFF' # Cyan
 
-# NES Gravity (frames per drop at 60fps)
+# NES Gravity (Slightly faster version)
 GRAVITY_TABLE = {
-    0: 48,
-    1: 43,
-    2: 38,
-    3: 33,
-    4: 28,
-    5: 23,
-    6: 18,
-    7: 13,
-    8: 8,
-    9: 6,
+    0: 40,
+    1: 35,
+    2: 30,
+    3: 25,
+    4: 20,
+    5: 15,
+    6: 10,
+    7: 8,
+    8: 6,
+    9: 5,
     10: 5,
     13: 4,
     16: 3,
@@ -123,11 +125,11 @@ SHAPES = {
 }
 
 SHAPE_ORDER = ['T', 'J', 'Z', 'O', 'S', 'L', 'I']
-# Colors mapped to shapes (Type A usually has 3 color palettes cycled)
-# We will use the Green Style for all for now as per user image.
-# Or we can cycle? The image shows "Type A".
-# Let's verify the image. It has T, J etc all green. User said "exact copy".
-# So ALL blocks are Green/LightGreen.
+# Map shapes to color constants
+SHAPE_COLORS = {
+    'T': COL_T, 'J': COL_J, 'Z': COL_Z, 'O': COL_O,
+    'S': COL_S, 'L': COL_L, 'I': COL_I
+}
 
 KICKS = [(0,0), (-1,0), (1,0), (0,-1)]
 KICKS_I = [(0,0), (-2,0), (1,0), (-2,-1), (1,2)]
@@ -297,7 +299,7 @@ class Renderer:
         width = len(str(text)) * 6 * scale
         self.draw_text(text, cx - width // 2, y, scale, color)
 
-    def draw_block(self, gx, gy, visible=True, ghost=False):
+    def draw_block(self, gx, gy, visible=True, ghost=False, type_key='T'):
         if not visible: return
         sx = GRID_ORIGIN_X + gx * GRID_CELL_SIZE
         sy = GRID_ORIGIN_Y + gy * GRID_CELL_SIZE
@@ -307,32 +309,36 @@ class Renderer:
             ctx.fillRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
             return
 
-        # NES Style Block
+        # Use specific color for block type
+        base_color = SHAPE_COLORS.get(type_key, '#00B800')
+
         # Outer
-        ctx.fillStyle = COL_BLOCK1_OUTER
+        ctx.fillStyle = base_color
         ctx.fillRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
         
-        # Highlights (Top/Left White, Bot/Right Darker Green?)
-        ctx.fillStyle = COL_BLOCK1_Highlight
+        # Highlights (Top/Left White)
+        ctx.fillStyle = "rgba(255,255,255,0.5)"
         ctx.fillRect(sx, sy, GRID_CELL_SIZE, 2) # Top
         ctx.fillRect(sx, sy, 2, GRID_CELL_SIZE) # Left
         
         # Inner
-        ctx.fillStyle = COL_BLOCK1_INNER
-        inset = 4 # Adjusted for 16px
+        ctx.fillStyle = "rgba(0,0,0,0.2)" # Darker center like NES
+        inset = 4 
         ctx.fillRect(sx + inset, sy + inset, GRID_CELL_SIZE - inset*2, GRID_CELL_SIZE - inset*2)
 
-    def draw_mini_block(self, x, y, size=12):
+    def draw_mini_block(self, x, y, size=12, type_key='T'):
         # Scaled down block
-        ctx.fillStyle = COL_BLOCK1_OUTER
+        color = SHAPE_COLORS.get(type_key, '#00B800')
+        ctx.fillStyle = color
         ctx.fillRect(x, y, size, size)
-        ctx.fillStyle = COL_BLOCK1_INNER
+        
+        ctx.fillStyle = "rgba(0,0,0,0.2)"
         inset = size // 4
         ctx.fillRect(x + inset, y + inset, size - inset*2, size - inset*2)
 
-    def draw_tetromino(self, tet, gx, gy):
+    def draw_tetromino(self, tet, gx, gy, type_key):
         for bx, by in tet:
-             self.draw_block(gx + bx, gy + by)
+             self.draw_block(gx + bx, gy + by, type_key=type_key)
 
 class BagRandomizer:
     def __init__(self):
@@ -367,9 +373,7 @@ class Board:
         return [i for i, row in enumerate(self.grid) if all(cell != 0 for cell in row)]
         
     def remove_lines(self, lines):
-        # Create new grid skipping cleared lines
         new_grid = [row for i, row in enumerate(self.grid) if i not in lines]
-        # Prepend new empty lines
         for _ in range(len(lines)):
             new_grid.insert(0, [0 for _ in range(COLS)])
         self.grid = new_grid
@@ -433,10 +437,6 @@ class Game:
     def check_t_spin(self):
         if self.curr_piece_type != 'T': return False
         if not self.last_move_rotate: return False
-        
-        # Check 4 corners of the 3x3 box around center
-        # T center is (0,0) relative to its definition in SHAPES usually? 
-        # SHAPES['T'] defined around (0,0). Corners are (-1,-1), (1,-1), (-1,1), (1,1)
         corners = [(-1,-1), (1,-1), (-1,1), (1,1)]
         occupied = 0
         for cx, cy in corners:
@@ -445,6 +445,39 @@ class Game:
             if wx < 0 or wx >= COLS or wy >= ROWS or (wy >= 0 and self.board.grid[wy][wx]):
                 occupied += 1
         return occupied >= 3
+
+    def try_rotate(self, dir):
+        new_rot = (self.curr_rot + dir) % 4
+        new_shape = SHAPES[self.curr_piece_type][new_rot]
+        kicks = KICKS_I if self.curr_piece_type == 'I' else KICKS
+        for kx, ky in kicks:
+            if not self.board.is_collision(new_shape, self.curr_x + kx, self.curr_y - ky):
+                self.curr_rot = new_rot
+                self.curr_piece = new_shape
+                self.curr_x += kx
+                self.curr_y -= ky
+                self.lock_timer = 0
+                self.last_move_rotate = True
+                js.window.triggerSFX('rotate')
+                return
+
+    def lock_piece(self):
+        self.tspin_flag = self.check_t_spin()
+        
+        self.board.lock(self.curr_piece, self.curr_x, self.curr_y, self.curr_piece_type)
+        js.window.triggerSFX('lock')
+        lines = self.board.check_lines()
+        
+        if lines:
+            self.lines_cleared_batch = lines
+            self.state = "DELAY"
+            self.next_state = "CLEAR"
+            self.delay_timer = 20
+        else:
+            self.combo = -1
+            self.state = "DELAY"
+            self.next_state = "SPAWN"
+            self.delay_timer = 10
 
     def update(self):
         if self.action_timer > 0: self.action_timer -= 1
@@ -583,48 +616,12 @@ class Game:
                 self.curr_y += 1
                 self.last_move_rotate = False
                 self.lock_timer = 0
-            # Note: No auto-lock on land, only on next tick failure or timer?
-            # NES locks when trying to move DOWN fails, but allows sliding.
-            # Using simple lock delay logic here.
 
         # Lock Logic
         if self.board.is_collision(self.curr_piece, self.curr_x, self.curr_y + 1):
             self.lock_timer += 1
             if self.lock_timer > 30:
                 self.lock_piece()
-
-    def try_rotate(self, dir):
-        new_rot = (self.curr_rot + dir) % 4
-        new_shape = SHAPES[self.curr_piece_type][new_rot]
-        kicks = KICKS_I if self.curr_piece_type == 'I' else KICKS
-        for kx, ky in kicks:
-            if not self.board.is_collision(new_shape, self.curr_x + kx, self.curr_y - ky):
-                self.curr_rot = new_rot
-                self.curr_piece = new_shape
-                self.curr_x += kx
-                self.curr_y -= ky
-                self.lock_timer = 0
-                self.last_move_rotate = True
-                js.window.triggerSFX('rotate')
-                return
-
-    def lock_piece(self):
-        self.tspin_flag = self.check_t_spin()
-        
-        self.board.lock(self.curr_piece, self.curr_x, self.curr_y, self.curr_piece_type)
-        js.window.triggerSFX('lock')
-        lines = self.board.check_lines()
-        
-        if lines:
-            self.lines_cleared_batch = lines
-            self.state = "DELAY"
-            self.next_state = "CLEAR"
-            self.delay_timer = 20
-        else:
-            self.combo = -1
-            self.state = "DELAY"
-            self.next_state = "SPAWN"
-            self.delay_timer = 10
 
     def draw(self):
         self.renderer.clear()
@@ -654,19 +651,20 @@ class Game:
         self.renderer.draw_text_centered("STATISTICS", STATS_X + STATS_W//2, STATS_Y + 16, 2)
         
         # Stats Content
+        # Stats Content
         sy = STATS_Y + 48
         for k in SHAPE_ORDER:
             # Draw Larger Mini Blocks (Size 12)
             # Offset Shape X
             shape_def = SHAPES[k][0]
             mx = STATS_X + 32
-            my = sy + 8
+            my = sy + 16 # Shift down slightly within slot
             for x, y in shape_def:
-                self.renderer.draw_mini_block(mx + x*12, my + y*12, 12)
+                self.renderer.draw_mini_block(mx + x*12, my + y*12, 12, type_key=k)
             
             # Count
-            self.renderer.draw_text(f"{self.stats[k]:03}", STATS_X + 80, sy + 12, 2, COL_TEXT_RED)
-            sy += 32
+            self.renderer.draw_text(f"{self.stats[k]:03}", STATS_X + 80, sy + 8, 2, COL_TEXT_RED)
+            sy += 44 # Adjusted spacing to fit screen
             
         # Board
         # Flash Logic
@@ -684,25 +682,25 @@ class Game:
                          ctx.fillStyle = COL_TEXT_WHITE
                          ctx.fillRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
                     else:
-                         self.renderer.draw_block(x, y)
+                         self.renderer.draw_block(x, y, type_key=v)
                          
         # Active
         if self.state == "PLAYING" and self.curr_piece:
-             self.renderer.draw_tetromino(self.curr_piece, self.curr_x, self.curr_y)
+             self.renderer.draw_tetromino(self.curr_piece, self.curr_x, self.curr_y, type_key=self.curr_piece_type)
              
         # Next Piece
         if self.next_piece_type:
              nx = NEXT_X + NEXT_W//2 - 24 # Centered approx
              ny = NEXT_Y + NEXT_H//2 + 8
              for x, y in SHAPES[self.next_piece_type][0]:
-                  self.renderer.draw_mini_block(nx + x*16, ny + y*16, 16) # Full size preview
+                  self.renderer.draw_mini_block(nx + x*16, ny + y*16, 16, type_key=self.next_piece_type)
 
         if hasattr(self, 'action_text') and self.action_timer > 0:
              self.renderer.draw_text_centered(self.action_text, PLAYFIELD_X + PLAYFIELD_W//2, PLAYFIELD_Y + PLAYFIELD_H//2, 2, '#FF0')
 
         if self.state == "TITLE":
              self.renderer.draw_box(180, 200, 200, 80)
-             self.renderer.draw_text_centered("TETRIS", 280, 220, 2, COL_BLOCK_OUTER)
+             self.renderer.draw_text_centered("TETRIS", 280, 220, 2, '#00B800')
              self.renderer.draw_text_centered("PRESS ENTER", 280, 250, 1, COL_TEXT_WHITE)
 
 game = Game()

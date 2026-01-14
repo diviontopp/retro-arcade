@@ -1,7 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Neo Avatar - static pixel art character display
+// Dynamic animated avatar that cycles between two states
 const AnimatedSpriteAvatar: React.FC = () => {
+    const avatars = [
+        '/avatar/avatar_main.gif',
+        '/avatar/avatar_alt.gif',
+        '/avatar/avatar_extra_1.gif',
+        '/avatar/avatar_extra_2.gif'
+    ];
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % avatars.length);
+        }, 20000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    const currentGif = avatars[currentIndex];
+
     return (
         <div style={{
             width: '100%',
@@ -17,14 +35,18 @@ const AnimatedSpriteAvatar: React.FC = () => {
                 style={{
                     width: '100%',
                     height: '100%',
-                    backgroundImage: 'url(/neo_avatar.png)',
-                    backgroundSize: 'contain',
-                    backgroundPosition: 'center bottom',
+                    backgroundImage: `url(${currentGif})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center -60px', // Shift up to crop top watermark
                     backgroundRepeat: 'no-repeat',
                     imageRendering: 'pixelated',
+                    transition: 'background-image 0.2s ease-in-out',
+                    // Normal blend since container is black
+                    mixBlendMode: 'normal',
+                    // Tune levels to ensure video background is pure black
+                    filter: 'brightness(0.95) contrast(1.05)'
                 }}
             />
-
         </div>
     );
 };
