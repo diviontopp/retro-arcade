@@ -184,8 +184,8 @@ const MusicContent: React.FC = () => {
 };
 
 const PhotosContent: React.FC = () => {
-    // Generate array of 30 items
-    const photos = Array.from({ length: 30 }, (_, i) => i + 1);
+    // Generate array of 36 items
+    const photos = Array.from({ length: 36 }, (_, i) => i + 1);
 
     return (
         <div style={{ padding: '10px', color: 'var(--primary)' }}>
@@ -286,7 +286,7 @@ const DefaultContent: React.FC = () => (
             <h3 style={{ color: 'slateblue', fontSize: '26px', marginBottom: '10px' }}>credits:</h3>
             <div style={{
                 color: 'var(--primary)',
-                fontSize: '18px',
+                fontSize: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',

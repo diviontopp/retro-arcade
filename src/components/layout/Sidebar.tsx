@@ -7,55 +7,88 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
     const games = [
-        { id: 'SNAKE', label: 'snake', icon: '🐍' },
-        { id: 'TETRIS', label: 'tetris', icon: '🧱' },
-        { id: 'BREAKOUT', label: 'breakout', icon: '🏐' },
-        { id: 'INVADERS', label: 'invaders', icon: '👾' },
-        { id: 'ANTIGRAV', label: 'flappy bird', icon: '🐥' },
+        { id: 'SNAKE', label: 'snake', icon: '🐍', iconSrc: '/snake.mp4', isVideo: true },
+        { id: 'TETRIS', label: 'tetris', icon: '🧱', iconSrc: '/icons/tetris.png' },
+        { id: 'BREAKOUT', label: 'breakout', icon: '🏐', iconSrc: '/icons/breakout.png' },
+        { id: 'INVADERS', label: 'invaders', icon: '👾', iconSrc: '/icons/invaders.png' },
+        { id: 'ANTIGRAV', label: 'flappy bird', icon: '🐥', iconSrc: '/icons/flappy.png' },
     ];
 
     // Additional "fake" links to match the density of the reference image
     const links = [
-        { label: 'about', icon: '📜', id: 'about' },
-        { label: 'tech stack', icon: '💻', id: 'TECH_STACK' },
-        { label: 'music', icon: '🎵', id: 'MUSIC' },
-        { label: 'photos', icon: '🖼️', id: 'PHOTOS' },
+        { label: 'about', icon: '📜', id: 'about', iconSrc: '/icons/about.png' },
+        { label: 'tech stack', icon: '💻', id: 'TECH_STACK', iconSrc: '/icons/techstack.png' },
+        { label: 'music', icon: '🎵', id: 'MUSIC', iconSrc: '/icons/music.png' },
+        { label: 'photos', icon: '🖼️', id: 'PHOTOS', iconSrc: '/icons/photos.png' },
     ];
 
-    const SidebarItem = ({ label, icon, onClick }: { label: string, icon: string, onClick?: () => void }) => (
-        <div style={{ display: 'flex', marginBottom: '8px', cursor: 'pointer' }} onClick={onClick} className="sidebar-hover-container">
-            {/* Icon Box */}
-            <div style={{
-                width: '48px',
-                height: '48px',
-                border: '4px solid var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                marginRight: '4px',
-                flexShrink: 0
-            }} className="sidebar-box">
-                {icon}
-            </div>
+    const SidebarItem = ({ label, icon, iconSrc, isVideo, onClick }: { label: string, icon: string, iconSrc?: string, isVideo?: boolean, onClick?: () => void }) => {
+        return (
+            <div style={{ display: 'flex', marginBottom: '8px', cursor: 'pointer' }} onClick={onClick} className="sidebar-hover-container">
+                {/* Icon Box */}
+                <div style={{
+                    width: '48px',
+                    height: '48px',
+                    border: '4px solid var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    marginRight: '4px',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    backgroundColor: 'black'
+                }} className="sidebar-box">
+                    {iconSrc ? (
+                        isVideo ? (
+                            <video
+                                src={iconSrc}
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover'
+                                }}
+                            />
+                        ) : (
+                            <img
+                                src={iconSrc}
+                                alt={label}
+                                style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    imageRendering: 'pixelated'
+                                }}
+                            />
+                        )
+                    ) : (
+                        icon
+                    )}
+                </div>
 
-            {/* Label Box */}
-            <div style={{
-                flex: 1,
-                height: '48px',
-                border: '4px solid var(--primary)',
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: '10px',
-                fontSize: '20px',
-                fontWeight: 'bold',
-                textTransform: 'lowercase',
-                color: 'var(--primary)',
-            }} className="sidebar-box">
-                {label}
+                {/* Label Box */}
+                <div style={{
+                    flex: 1,
+                    height: '48px',
+                    border: '4px solid var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: '10px',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    textTransform: 'lowercase',
+                    color: 'var(--primary)',
+                }} className="sidebar-box">
+                    {label}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <nav style={{
@@ -64,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
             padding: '10px',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: 'rgba(0,0,0,0.9)', // Restoring darker overlay
+            backgroundColor: 'rgba(0,0,0,0.9)',
             imageRendering: 'pixelated',
             overflowY: 'auto'
         }}>
@@ -86,6 +119,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
                     key={game.id}
                     label={game.label}
                     icon={game.icon}
+                    iconSrc={game.iconSrc}
+                    isVideo={game.isVideo}
                     onClick={() => onOpenGame && onOpenGame(game.id)}
                 />
             ))}
@@ -94,6 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
             <SidebarItem
                 label="controls"
                 icon="🎮"
+                iconSrc="/icons/controls.png"
                 onClick={() => onOpenGame && onOpenGame('CONTROLS')}
             />
 
@@ -105,6 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
                     key={i}
                     label={link.label}
                     icon={link.icon}
+                    iconSrc={link.iconSrc}
                     onClick={() => link.id && onOpenGame && onOpenGame(link.id)}
                 />
             ))}

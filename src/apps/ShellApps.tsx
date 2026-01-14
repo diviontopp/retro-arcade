@@ -66,17 +66,49 @@ export const SearchApp: React.FC = () => {
 // ============= GALLERY APP - Bug Images =============
 export const GalleryApp: React.FC = () => {
     const bugs = [
-        { name: 'beetle', src: '/pixel_bug_1_1768120426265.png' },
-        { name: 'ladybug', src: '/pixel_bug_2_1768120445704.png' },
-        { name: 'butterfly', src: '/pixel_bug_3_1768120461936.png' },
-        { name: 'drag onfly', src: '/pixel_bug_4_1768120479786.png' },
+        { name: 'Arcade Vibes', src: '/photos/%23arcade.jpg' },
+        { name: 'Retro Gaming', src: '/photos/04d23dfdbce58c951a610dfe2db46829.jpg' },
+        { name: 'Arcade Fun', src: '/photos/Arcade%20Fun.jpg' },
+        { name: 'Classic Arcade', src: '/photos/Arcade%20_.jpg' },
+        { name: 'Arcade Nostalgia', src: '/photos/Arcade%20%F0%9F%91%BE.jpg' },
+        { name: 'Go Kart Aesthetic', src: '/photos/Go%20kart%20aesthetic.jpg' },
+        { name: 'Vada Abbey', src: '/photos/Vada%20Abbey.jpg' },
+        { name: 'Vroom Vroom', src: '/photos/Vroom%20vroom.jpg' },
+        { name: 'Arcade Classic', src: '/photos/arcade.jpg' },
+        { name: 'Arcade Heaven', src: '/photos/arcade%F0%9F%95%B9%EF%B8%8F%F0%9F%91%BE.jpg' },
+        { name: 'Retro Setup', src: '/photos/c4d4b6fbb507c2802d5b82022cd90d4d.jpg' },
+        { name: 'Gaming Zone', src: '/photos/d971d78f70d80eeb493a13d6d75bbb60.jpg' },
+        { name: 'Arcade Scene 1', src: '/photos/download%20(1).jpg' },
+        { name: 'Arcade Scene 2', src: '/photos/download%20(2).jpg' },
+        { name: 'Arcade Scene 3', src: '/photos/download%20(3).jpg' },
+        { name: 'Arcade Scene 4', src: '/photos/download%20(4).jpg' },
+        { name: 'Arcade Scene 5', src: '/photos/download%20(5).jpg' },
+        { name: 'Arcade Scene 6', src: '/photos/download%20(6).jpg' },
+        { name: 'Arcade Scene 7', src: '/photos/download%20(7).jpg' },
+        { name: 'Arcade Scene 8', src: '/photos/download%20(8).jpg' },
+        { name: 'Arcade Scene 9', src: '/photos/download%20(9).jpg' },
+        { name: 'Arcade Scene 10', src: '/photos/download%20(10).jpg' },
+        { name: 'Arcade Scene 11', src: '/photos/download%20(11).jpg' },
+        { name: 'Arcade Scene 12', src: '/photos/download%20(12).jpg' },
+        { name: 'Arcade Scene 13', src: '/photos/download%20(13).jpg' },
+        { name: 'Arcade Scene 14', src: '/photos/download%20(14).jpg' },
+        { name: 'Arcade Scene 15', src: '/photos/download%20(15).jpg' },
+        { name: 'Arcade Scene 16', src: '/photos/download%20(16).jpg' },
+        { name: 'Arcade Scene 17', src: '/photos/download%20(17).jpg' },
+        { name: 'Arcade Scene 18', src: '/photos/download%20(18).jpg' },
+        { name: 'Arcade Scene 19', src: '/photos/download%20(19).jpg' },
+        { name: 'Arcade Original', src: '/photos/download.jpg' },
+        { name: 'Mini Golf', src: '/photos/mini%20golf.jpg' },
+        { name: 'Timezone Goodtime', src: '/photos/timezone%20always%20had%20goodtime.jpg' },
+        { name: 'Trampoline Park', src: '/photos/trampoline%20park.jpg' },
+        { name: 'Arcade Emoji', src: '/photos/%F0%9F%91%BE.jpg' },
     ];
 
     const [selected, setSelected] = useState(0);
 
     return (
         <div style={{ padding: '15px', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ color: 'slateblue', marginBottom: '15px' }}>🖼️ bug gallery</div>
+            <div style={{ color: 'slateblue', marginBottom: '15px' }}>🖼️ retro arcade gallery</div>
 
             {/* Main image display */}
             <div style={{
@@ -95,7 +127,7 @@ export const GalleryApp: React.FC = () => {
                     style={{
                         maxWidth: '80%',
                         maxHeight: '80%',
-                        imageRendering: 'pixelated'
+                        imageRendering: 'auto'
                     }}
                 />
             </div>
