@@ -11,7 +11,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
         { id: 'TETRIS', label: 'tetris', icon: '🧱' },
         { id: 'BREAKOUT', label: 'breakout', icon: '🏐' },
         { id: 'INVADERS', label: 'invaders', icon: '👾' },
-        { id: 'ANTIGRAV', label: 'antigravity', icon: '🚀' },
+        { id: 'ANTIGRAV', label: 'flappy bird', icon: '🐥' },
     ];
 
     // Additional "fake" links to match the density of the reference image
@@ -59,11 +59,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
 
     return (
         <nav style={{
+            height: '100%',
             borderRight: '4px solid var(--primary)',
             padding: '10px',
             display: 'flex',
             flexDirection: 'column',
-            backgroundColor: 'transparent', // Allow global background to show through
+            backgroundColor: 'rgba(0,0,0,0.8)', // Restoring dark overlay
             imageRendering: 'pixelated',
             overflowY: 'auto'
         }}>

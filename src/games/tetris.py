@@ -94,20 +94,20 @@ COL_BLOCK1_Highlight = '#FFFFFF'
 
 # NES Gravity (frames per drop at 60fps)
 GRAVITY_TABLE = {
-    0: 30, # Faster start (was 48)
-    1: 25,
-    2: 20,
-    3: 15,
-    4: 10,
-    5: 8,
-    6: 6,
-    7: 5,
-    8: 4,
-    9: 3,
-    10: 2,
-    13: 2,
-    16: 2,
-    19: 1,
+    0: 48,
+    1: 43,
+    2: 38,
+    3: 33,
+    4: 28,
+    5: 23,
+    6: 18,
+    7: 13,
+    8: 8,
+    9: 6,
+    10: 5,
+    13: 4,
+    16: 3,
+    19: 2,
     29: 1
 }
 
@@ -515,7 +515,7 @@ class Game:
 
                     self.score += score_add
                     self.lines += count
-                    self.level = 1 + self.lines
+                    self.level = 1 + (self.lines // 10)
                     
                     if action_str:
                          self.action_text = action_str

@@ -156,13 +156,32 @@ function App() {
         position: 'relative',
         zIndex: 1
       }}>
-        {/* Left Sidebar - Games (Wrapped for BG color) */}
-        <div style={{ backgroundColor: currentBgColor, height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {/* Left Sidebar - Games (Wrapped for BG image) */}
+        <div style={{
+          backgroundColor: 'black',
+          backgroundImage: 'linear-gradient(rgba(0, 20, 0, 0.75), rgba(0, 20, 0, 0.75)), url(/pixel.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          height: '100%',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+          // borderRight removed to avoid double border with Sidebar component
+        }}>
           <Sidebar onOpenGame={openWindow} />
         </div>
 
         {/* Main Content Area */}
-        <main style={{ position: 'relative', overflow: 'hidden', padding: '10px' }}>
+        <main style={{
+          position: 'relative',
+          overflow: 'hidden',
+          padding: '10px',
+          backgroundColor: 'black',
+          backgroundImage: 'linear-gradient(rgba(0, 20, 0, 0.75), rgba(0, 20, 0, 0.75)), url(/pixel.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}>
+          {/* Dark overlay for readability if needed, or just content */}
           <ContentWindow />
 
           {/* Floating Windows */}
@@ -186,7 +205,7 @@ function App() {
 
         {/* Right Avatar Panel - conditional */}
         {showAvatar && (
-          <div style={{ position: 'relative', borderLeft: '4px solid var(--primary)', backgroundColor: currentBgColor, transition: 'background-color 0.3s' }}>
+          <div style={{ position: 'relative', transition: 'background-color 0.3s' }}>
             <AvatarPanel />
             <ChatBox />
           </div>

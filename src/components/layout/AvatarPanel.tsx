@@ -1,5 +1,5 @@
 import React from 'react';
-import { AnimatedAvatar } from '../fx/Animations';
+import AnimatedSpriteAvatar from '../fx/AnimatedSpriteAvatar';
 
 // Male avatar panel - right side character display
 const AvatarPanel: React.FC = () => {
@@ -22,15 +22,13 @@ const AvatarPanel: React.FC = () => {
                 width: '100%',
                 height: '4px',
                 backgroundColor: 'var(--primary)',
-                marginBottom: '10px' // Spacing
+                marginBottom: '5px', // Reduced spacing
+                marginTop: '20px'    // Pushed down
             }}></div>
 
-            {/* Pixel Art Avatar Image - fills available space */}
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                <AnimatedAvatar
-                    src="/neo_avatar.png"
-                    alt="Neo - Arcade Host"
-                />
+            {/* Animated Gaming Avatar */}
+            <div style={{ width: '100%', flex: 1, minHeight: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+                <AnimatedSpriteAvatar />
             </div>
         </div>
     );

@@ -83,9 +83,22 @@ export const Scanline: React.FC = () => (
     <div className="scanline" />
 );
 
-// AnimatedAvatar component with chroma keying for transparent background
+// AnimatedAvatar component with chroma keying for transparent background and animations
 export const AnimatedAvatar: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isHovered, setIsHovered] = useState(false);
+    const [randomOffset, setRandomOffset] = useState({ x: 0, y: 0 });
+
+    // Random movement effect - occasional shifts
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setRandomOffset({
+                x: (Math.random() - 0.5) * 10,
+                y: (Math.random() - 0.5) * 5
+            });
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         const img = new Image();
@@ -214,17 +227,43 @@ export const AnimatedAvatar: React.FC<{ src: string; alt: string }> = ({ src, al
         }}>
             <canvas
                 ref={canvasRef}
-                className="bounce"
+                className="avatar-animated"
                 title={alt}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
                 style={{
                     width: 'auto',
                     height: 'auto',
                     maxWidth: '100%',
                     maxHeight: '100%',
                     imageRendering: 'pixelated',
-                    objectFit: 'contain'
+                    objectFit: 'contain',
+                    transform: `translate(${randomOffset.x}px, ${randomOffset.y}px) scale(${isHovered ? 1.05 : 1})`,
+                    transition: 'transform 0.3s ease-out',
+                    cursor: 'pointer'
                 }}
             />
+            <style>{`
+                @keyframes breathe {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-8px); }
+                }
+                
+                @keyframes float {
+                    0%, 100% { transform: translateY(0px) rotate(0deg); }
+                    25% { transform: translateY(-5px) rotate(1deg); }
+                    50% { transform: translateY(-10px) rotate(0deg); }
+                    75% { transform: translateY(-5px) rotate(-1deg); }
+                }
+                
+                .avatar-animated {
+                    animation: float 4s ease-in-out infinite;
+                }
+                
+                .avatar-animated:hover {
+                    animation: breathe 1s ease-in-out infinite;
+                }
+            `}</style>
         </div>
     );
 };

@@ -73,15 +73,34 @@ const DefaultContent: React.FC = () => (
             flexWrap: 'wrap',
             marginBottom: '20px'
         }}>
-            {['github', 'discord', 'contact', 'credits'].map(link => (
-                <span key={link} style={{
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'slateblue', fontWeight: 'bold', fontSize: '26px' }}>github :</span>
+                <a href="https://github.com/diviontopp/arcade" target="_blank" rel="noopener noreferrer" style={{
                     color: 'coral',
                     cursor: 'pointer',
                     textDecoration: 'none'
                 }}>
-                    [{link}]
-                </span>
-            ))}
+                    https://github.com/diviontopp/arcade
+                </a>
+            </div>
+        </div>
+
+        {/* Credits */}
+        <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ color: 'slateblue', fontSize: '26px', marginBottom: '10px' }}>credits:</h3>
+            <div style={{
+                color: 'var(--primary)',
+                fontSize: '18px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                paddingLeft: '10px'
+            }}>
+                <div>Divyaansh</div>
+                <div>Suman</div>
+                <div>Melvin</div>
+                <div>Antony</div>
+            </div>
         </div>
 
         {/* Project info */}
