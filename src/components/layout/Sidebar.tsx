@@ -3,9 +3,10 @@ import React from 'react';
 // Sidebar: Authentic "Icon Box + Label Box" layout
 interface SidebarProps {
     onOpenGame?: (gameId: string) => void;
+    isMobile?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onOpenGame, isMobile = false }) => {
     const games = [
         { id: 'SNAKE', label: 'snake', icon: '🐍', iconSrc: '/snake.mp4', isVideo: true },
         { id: 'TETRIS', label: 'tetris', icon: '🧱', iconSrc: '/icons/tetris.png' },
@@ -24,17 +25,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
 
     const SidebarItem = ({ label, icon, iconSrc, isVideo, onClick }: { label: string, icon: string, iconSrc?: string, isVideo?: boolean, onClick?: () => void }) => {
         return (
-            <div style={{ display: 'flex', marginBottom: '8px', cursor: 'pointer' }} onClick={onClick} className="sidebar-hover-container">
+            <div style={{
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                marginBottom: isMobile ? '0' : '8px',
+                marginRight: isMobile ? '4px' : '0',
+                cursor: 'pointer',
+                alignItems: isMobile ? 'center' : 'stretch'
+            }} onClick={onClick} className="sidebar-hover-container sidebar-item" title={label}>
                 {/* Icon Box */}
                 <div style={{
-                    width: '48px',
-                    height: '48px',
-                    border: '4px solid var(--primary)',
+                    width: isMobile ? '36px' : '48px',
+                    height: isMobile ? '36px' : '48px',
+                    border: isMobile ? '2px solid var(--primary)' : '3px solid var(--primary)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
-                    marginRight: '4px',
+                    fontSize: isMobile ? '16px' : '24px',
+                    marginRight: isMobile ? '0' : '4px',
                     flexShrink: 0,
                     overflow: 'hidden',
                     position: 'relative',
@@ -71,25 +79,83 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame }) => {
                     )}
                 </div>
 
-                {/* Label Box */}
-                <div style={{
-                    flex: 1,
-                    height: '48px',
-                    border: '4px solid var(--primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingLeft: '10px',
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    textTransform: 'lowercase',
-                    color: 'var(--primary)',
-                }} className="sidebar-box">
-                    {label}
-                </div>
+                {/* Label Box - hidden on mobile */}
+                {!isMobile && (
+                    <div style={{
+                        flex: 1,
+                        height: '48px',
+                        border: '4px solid var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        paddingLeft: '10px',
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        textTransform: 'lowercase',
+                        color: 'var(--primary)',
+                    }} className="sidebar-box label-box">
+                        {label}
+                    </div>
+                )}
             </div>
         );
     };
 
+    // Mobile layout - horizontal scrollable
+    if (isMobile) {
+        return (
+            <nav style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: '4px',
+                padding: '4px',
+                flexWrap: 'nowrap'
+            }}>
+                {/* Games */}
+                {games.map(game => (
+                    <SidebarItem
+                        key={game.id}
+                        label={game.label}
+                        icon={game.icon}
+                        iconSrc={game.iconSrc}
+                        isVideo={game.isVideo}
+                        onClick={() => onOpenGame && onOpenGame(game.id)}
+                    />
+                ))}
+
+                {/* Small separator */}
+                <div style={{ width: '1px', height: '36px', backgroundColor: 'var(--primary)', margin: '0 2px', flexShrink: 0 }}></div>
+
+                {/* Controls */}
+                <SidebarItem
+                    label="controls"
+                    icon="🎮"
+                    iconSrc="/icons/controls.png"
+                    onClick={() => onOpenGame && onOpenGame('CONTROLS')}
+                />
+
+                {/* Links */}
+                {links.map((link, i) => (
+                    <SidebarItem
+                        key={i}
+                        label={link.label}
+                        icon={link.icon}
+                        iconSrc={link.iconSrc}
+                        onClick={() => link.id && onOpenGame && onOpenGame(link.id)}
+                    />
+                ))}
+
+                <style>{`
+                    .sidebar-hover-container:hover .sidebar-box {
+                        background-color: var(--primary);
+                        color: black !important;
+                    }
+                `}</style>
+            </nav>
+        );
+    }
+
+    // Desktop layout - vertical
     return (
         <nav style={{
             height: '100%',

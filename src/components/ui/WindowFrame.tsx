@@ -6,9 +6,10 @@ interface WindowFrameProps {
     style?: React.CSSProperties;
     onClose: () => void;
     id: string;
+    className?: string;
 }
 
-const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClose, id }) => {
+const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClose, id, className }) => {
     const [position, setPosition] = useState({ x: style?.left as number || 100, y: style?.top as number || 100 });
     const [size, setSize] = useState({
         width: style?.width ? parseInt(String(style.width)) : 300,
@@ -71,6 +72,7 @@ const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClo
         <div
             id={id}
             ref={frameRef}
+            className={className}
             style={{
                 position: 'absolute',
                 left: position.x,

@@ -14,15 +14,34 @@ import {
   ComicApp, HomeApp, GalleryApp
 } from './apps/ShellApps';
 import audioBus from './services/AudioBus';
+import { initMobileControls, removeMobileControls } from './services/MobileControls';
 
 function App() {
   const [isBooting, setIsBooting] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.playbackRate = 5.0;
     }
+  }, []);
+
+  // Initialize mobile swipe controls
+  useEffect(() => {
+    if (isMobile) {
+      initMobileControls();
+    }
+    return () => removeMobileControls();
+  }, [isMobile]);
+
+  // Listen for window resize to toggle mobile mode
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number; height?: number }[]>([]);
@@ -161,7 +180,15 @@ function App() {
       <Particles active={showParticles} />
       <ClickEffect />
 
-      <div className="app-container" style={{
+      <div className="app-container" style={isMobile ? {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100vw',
+        minHeight: '100vh',
+        overflow: 'auto',
+        position: 'relative',
+        zIndex: 1
+      } : {
         display: 'grid',
         gridTemplateColumns: showAvatar ? '240px 1fr 450px' : '240px 1fr 0px',
         gridTemplateRows: '1fr 60px',
@@ -192,29 +219,52 @@ function App() {
           }}
         />
 
-        {/* Left Sidebar */}
-        <div style={{
-          position: 'relative',
-          backgroundColor: 'transparent',
-          height: '100%',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          zIndex: 1
-        }}>
-          <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <Sidebar onOpenGame={openWindow} />
+        {/* Left Sidebar - horizontal on mobile */}
+        {!isMobile && (
+          <div className="mobile-sidebar" style={{
+            position: 'relative',
+            backgroundColor: 'transparent',
+            height: '100%',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1
+          }}>
+            <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Sidebar onOpenGame={openWindow} />
+            </div>
           </div>
-        </div>
+        )}
 
-        <main style={{
+        {/* Mobile Sidebar - horizontal scrollable */}
+        {isMobile && (
+          <div style={{
+            backgroundColor: 'rgba(0,0,0,0.95)',
+            borderBottom: '3px solid var(--primary)',
+            padding: '6px 8px',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            display: 'flex',
+            flexDirection: 'row',
+            gap: '4px',
+            flexShrink: 0,
+            zIndex: 1,
+            maxHeight: '70px'
+          }}>
+            <Sidebar onOpenGame={openWindow} isMobile={true} />
+          </div>
+        )}
+
+        <main className="main-content-mobile" style={{
           position: 'relative',
-          overflow: 'hidden',
+          overflow: isMobile ? 'auto' : 'hidden',
           padding: '0',
-          backgroundColor: 'transparent',
-          zIndex: 1
+          backgroundColor: isMobile ? 'rgba(0,0,0,0.9)' : 'transparent',
+          zIndex: 1,
+          flex: isMobile ? 1 : undefined,
+          minHeight: isMobile ? 'calc(100vh - 130px)' : undefined
         }}>
-          <div style={{ position: 'relative', height: '100%' }}>
+          <div style={{ position: 'relative', height: '100%', minHeight: isMobile ? 'calc(100vh - 130px)' : undefined }}>
             {/* Dark overlay for readability if needed, or just content */}
             <ContentWindow mode={mainContentMode} />
 
@@ -224,6 +274,7 @@ function App() {
                 key={win.id}
                 id={win.id}
                 title={win.title}
+                className="window-frame-mobile"
                 style={{
                   left: win.x,
                   top: win.y,
@@ -238,9 +289,9 @@ function App() {
           </div>
         </main>
 
-        {/* Right Avatar Panel */}
-        {showAvatar && (
-          <div style={{
+        {/* Right Avatar Panel - hidden on mobile */}
+        {showAvatar && !isMobile && (
+          <div className="avatar-panel-container" style={{
             position: 'relative',
             transition: 'background-color 0.3s',
             backgroundColor: 'transparent',
@@ -254,8 +305,14 @@ function App() {
           </div>
         )}
 
-        {/* Bottom Taskbar - Pinned to bottom to prevent gaps */}
-        <div style={{
+        {/* Bottom Taskbar */}
+        <div className="mobile-taskbar" style={isMobile ? {
+          position: 'relative',
+          width: '100%',
+          minHeight: '60px',
+          zIndex: 10,
+          flexShrink: 0
+        } : {
           position: 'absolute',
           bottom: 0,
           left: 0,

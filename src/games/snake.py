@@ -21,7 +21,14 @@ food = (0, 0)
 score = 0
 state = "PLAYING" # PLAYING, GAMEOVER
 frame_count = 0
-MOVE_INTERVAL = 10 # Move every 10 frames (approx 6 updates/sec at 60fps)
+BASE_MOVE_INTERVAL = 18  # Start slower (was 10)
+MIN_MOVE_INTERVAL = 4    # Fastest speed
+SPEED_INCREASE_PER_FOOD = 1  # Speed up by reducing interval by 1 per food eaten
+
+def get_move_interval():
+    """Calculate move interval based on score - gets faster as you eat more"""
+    interval = BASE_MOVE_INTERVAL - (score * SPEED_INCREASE_PER_FOOD)
+    return max(MIN_MOVE_INTERVAL, interval)
 
 def reset_game():
     global snake, direction, food, score, state, frame_count
@@ -112,7 +119,7 @@ def loop(timestamp):
 
         if state == "PLAYING":
             frame_count += 1
-            if frame_count >= MOVE_INTERVAL:
+            if frame_count >= get_move_interval():
                 frame_count = 0
                 
                 # Process Input
