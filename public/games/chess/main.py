@@ -696,7 +696,7 @@ PIECES = {
 }
 
 # Canvas Setup
-canvas = document.getElementById('game-canvas')
+canvas = document.getElementById('game-canvas-chess')
 canvas.width = BOARD_SIZE
 canvas.height = BOARD_SIZE
 ctx = canvas.getContext('2d')
