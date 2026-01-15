@@ -311,7 +311,7 @@ fast_input = FastInput()
             overflow: 'hidden'
         }}>
             <canvas
-                id="game-canvas"
+                id={`game-canvas-${scriptName}`}
                 ref={canvasRef}
                 style={{
                     boxShadow: '0 0 20px rgba(0, 255, 65, 0.2)',

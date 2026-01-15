@@ -179,7 +179,7 @@ FONT_DATA = {
 # SYSTEM
 # =============================================================================
 
-canvas = js.document.getElementById('game-canvas')
+canvas = js.document.getElementById('game-canvas-tetris')
 canvas.width = CANVAS_WIDTH
 canvas.height = CANVAS_HEIGHT
 ctx = canvas.getContext('2d')
@@ -231,6 +231,7 @@ input_state = InputWrapper()
 # ENGINE
 # =============================================================================
 
+class Renderer:
     def __init__(self):
         self.bg_cache = None
 
@@ -642,6 +643,9 @@ class Game:
                 self.lock_piece()
 
     def draw(self):
+        if not hasattr(self, 'renderer'):
+            print("CRITICAL: Renderer missing in draw")
+            return
         self.renderer.clear()
         
         # Draw UI Panels
@@ -721,20 +725,23 @@ class Game:
              self.renderer.draw_text_centered("TETRIS", 280, 220, 2, '#00B800')
              self.renderer.draw_text_centered("PRESS ENTER", 280, 250, 1, COL_TEXT_WHITE)
 
-game = Game()
+# Instantiate Game
+print("Instantiating Game...")
+tetris_game = Game()
+print(f"Game instantiated. Attributes: {dir(tetris_game)}")
 def reset_game():
-    game.reset()
+    tetris_game.reset()
 
 def loop(t):
     try:
-        game.update()
-        game.draw()
+        tetris_game.update()
+        tetris_game.draw()
     except Exception as e:
         print(f"Game Error: {e}")
-        # Cannot access self here, use game.renderer
-        game.renderer.draw_text(f"ERR: {str(e)[:20]}", 10, 10, 1, '#FF0000')
+        # Cannot access self here, use tetris_game.renderer
+        tetris_game.renderer.draw_text(f"ERR: {str(e)[:20]}", 10, 10, 1, '#FF0000')
 
-    if getattr(game, 'state', None) != "VIDE":
+    if getattr(tetris_game, 'state', None) != "VIDE":
         global game_req_id
         game_req_id = js.window.requestAnimationFrame(proxy_loop)
 
@@ -742,10 +749,10 @@ proxy_loop = create_proxy(loop)
 game_req_id = js.window.requestAnimationFrame(proxy_loop)
 
 def cleanup():
-    if game.state == "VIDE":
+    if tetris_game.state == "VIDE":
         return
     
-    game.state = "VIDE"
+    tetris_game.state = "VIDE"
     
     try:
         js.window.cancelAnimationFrame(game_req_id)

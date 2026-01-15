@@ -4,21 +4,21 @@ import random
 import math
 from pyodide.ffi import create_proxy
 
-canvas = js.document.getElementById('game-canvas')
+canvas = js.document.getElementById('game-canvas-breakout')
 canvas.width = 800
 canvas.height = 600
 ctx = canvas.getContext('2d')
 
 # Asset Loading
-img_paddle = js.Image.new(); img_paddle.src = "/games/breakout/assets/paddle.png"
-img_ball = js.Image.new(); img_ball.src = "/games/breakout/assets/ball.png"
+img_paddle = js.window.Image.new(); img_paddle.src = "/games/breakout/assets/paddle.png"
+img_ball = js.window.Image.new(); img_ball.src = "/games/breakout/assets/ball.png"
 img_bricks = {
-    "red": js.Image.new(),
-    "orange": js.Image.new(),
-    "yellow": js.Image.new(),
-    "green": js.Image.new(),
-    "blue": js.Image.new(),
-    "purple": js.Image.new()
+    "red": js.window.Image.new(),
+    "orange": js.window.Image.new(),
+    "yellow": js.window.Image.new(),
+    "green": js.window.Image.new(),
+    "blue": js.window.Image.new(),
+    "purple": js.window.Image.new()
 }
 img_bricks["red"].src = "/games/breakout/assets/brick_red.png"
 img_bricks["orange"].src = "/games/breakout/assets/brick_orange.png"
@@ -29,11 +29,11 @@ img_bricks["purple"].src = "/games/breakout/assets/brick_purple.png"
 
 class Paddle:
     def __init__(self):
-        self.width = 128
+        self.width = 160
         self.height = 28
         self.x = (800 - self.width) // 2
         self.y = 550
-        self.speed = 8
+        self.speed = 2
 
     def move_left(self):
         self.x = max(0, self.x - self.speed)
@@ -51,7 +51,7 @@ class Paddle:
 class Ball:
     def __init__(self):
         self.size = 24
-        self.base_speed = 5
+        self.base_speed = 2.5
         self.reset()
 
     def reset(self):
@@ -111,13 +111,13 @@ class Ball:
             self.vy = -abs(self.vy)
             
             hit_pos = (self.x + self.size/2 - paddle.x) / paddle.width
-            self.vx = (hit_pos - 0.5) * 12
+            self.vx = (hit_pos - 0.5) * 6
             
             # Speed limit
             speed = math.sqrt(self.vx**2 + self.vy**2)
-            if speed > 15:
-                self.vx = (self.vx / speed) * 15
-                self.vy = (self.vy / speed) * 15
+            if speed > 9:
+                self.vx = (self.vx / speed) * 9
+                self.vy = (self.vy / speed) * 9
             
             try: js.window.triggerSFX('bounce')
             except: pass
@@ -421,11 +421,19 @@ def loop(timestamp):
         req_id = js.window.requestAnimationFrame(proxy_loop)
 
 proxy_loop = create_proxy(loop)
+
+# Safe Start
+if hasattr(js.window, 'breakout_req_id'):
+    js.window.cancelAnimationFrame(js.window.breakout_req_id)
+
 req_id = js.window.requestAnimationFrame(proxy_loop)
+js.window.breakout_req_id = req_id
 
 def cleanup():
     global game_running
     game_running = False
+    if hasattr(js.window, 'breakout_req_id'):
+        js.window.cancelAnimationFrame(js.window.breakout_req_id)
     try: js.window.cancelAnimationFrame(req_id)
     except: pass
     try: js.document.removeEventListener('keydown', down_proxy)

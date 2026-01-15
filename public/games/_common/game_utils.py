@@ -46,20 +46,18 @@ class ScreenShake:
     def __init__(self):
         self.intensity = 0
 
-    def trigger(self, amount=10):
-        self.intensity = amount
-
-    def apply(self, ctx):
+    def update(self):
         if self.intensity > 0:
             dx = (random.random() - 0.5) * self.intensity
             dy = (random.random() - 0.5) * self.intensity
-            ctx.translate(dx, dy)
             self.intensity *= 0.9
             if self.intensity < 0.5:
                 self.intensity = 0
-            return True # Applied
-        return False
+            return dx, dy
+        return 0, 0
+
+    def trigger(self, amount=10):
+        self.intensity = amount
 
     def reset(self, ctx):
-        # Always reset transform if we applied it
         ctx.setTransform(1, 0, 0, 1, 0, 0)

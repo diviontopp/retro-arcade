@@ -8,7 +8,7 @@ const ScoresContent: React.FC = () => {
     const [scores, setScores] = useState<Record<string, any[]>>({});
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [selectedGame, setSelectedGame] = useState<string>('INVADERS');
-    const games = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'ANTIGRAV'];
+    const games = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'CHESS'];
 
     useEffect(() => {
         const unsubAuth = onAuthStateChanged(auth, (user) => setCurrentUser(user));
@@ -99,7 +99,7 @@ const ScoresContent: React.FC = () => {
                 lineHeight: '1.2',
                 letterSpacing: '5px'
             }}>
-                {selectedGame === 'ANTIGRAV' ? 'ANTI-GRAV' : selectedGame}
+                {selectedGame}
             </h1>
 
             {/* "HIGH SCORES" Subheader */}
