@@ -24,7 +24,7 @@ const SCRIPT_PATHS: Record<string, string> = {
     breakout: '/games/breakout/main.py',
     tetris: '/games/tetris/main.py',
     invaders: '/games/spaceinvaders/main.py',
-    antigravity: '/games/antigravity/main.py',
+    chess: '/games/chess/main.py',
 };
 
 const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) => {
