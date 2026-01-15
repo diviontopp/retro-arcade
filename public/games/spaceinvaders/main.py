@@ -296,7 +296,7 @@ class Game:
         if move_down:
             for e in self.enemies:
                 e.direction *= -1
-                e.y += 10 # Reduced drop amount (was 20)
+                # e.y += 10 # Disabled vertical movement per user request
         
         # Collision
         for p in self.projectiles:
