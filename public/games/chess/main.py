@@ -1,7 +1,9 @@
 
 import math
+import time
 from js import document, window
 from pyodide.ffi import create_proxy
+
 
 # ==========================================
 # CHESS ENGINE LOGIC (Ported)
@@ -659,6 +661,8 @@ class Move:
 gs = GameState()
 valid_moves = gs.get_valid_moves()
 move_made = False  # Flag for when a move is made
+start_time = time.time()
+game_over_submitted = False
 
 # UI State
 sq_selected = ()  # (row, col)
@@ -666,6 +670,13 @@ player_clicks = []  # [(row, col), (row, col)]
 cursor_pos = [7, 4]  # Start at white king roughly
 key_cooldown = 0
 COOLDOWN_MAX = 5  # Frames to wait between key repeats
+# Drag State
+dragging = False
+drag_piece = None
+drag_start_pos = ()
+drag_current_pos = (0, 0) # mouse x, y
+hover_sq = ()
+
 
 # Constants
 BOARD_SIZE = 512
@@ -708,69 +719,114 @@ def get_mouse_pos(event):
     y = (event.clientY - rect.top) * scale_y
     return int(y // SQ_SIZE), int(x // SQ_SIZE)
 
-def on_mouse_down(event):
-    global sq_selected, player_clicks, move_made, valid_moves
+def on_mouse_move(event):
+    global hover_sq, dragging, drag_current_pos
     
-    # Don't handle clicks if game over
-    if gs.checkmate or gs.stalemate:
-        return
+    # Update hover square
+    row, col = get_mouse_pos(event)
+    if 0 <= row < DIMENSION and 0 <= col < DIMENSION:
+        hover_sq = (row, col)
+    else:
+        hover_sq = ()
+        
+    # Update drag position
+    if dragging:
+        rect = canvas.getBoundingClientRect()
+        scale_x = canvas.width / rect.width
+        scale_y = canvas.height / rect.height
+        drag_current_pos = ((event.clientX - rect.left) * scale_x, (event.clientY - rect.top) * scale_y)
+
+def on_mouse_down(event):
+    global sq_selected, player_clicks, move_made, valid_moves, dragging, drag_piece, drag_start_pos, drag_current_pos
+    
+    if gs.checkmate or gs.stalemate: return
 
     row, col = get_mouse_pos(event)
+    if row < 0 or row >= DIMENSION or col < 0 or col >= DIMENSION: return
+
+    piece = gs.board[row][col]
     
-    # Ensure click is on board
-    if row < 0 or row >= DIMENSION or col < 0 or col >= DIMENSION:
-        return
+    # Logic for interaction:
+    # 1. If clicking own piece, select it and start dragging
+    # 2. If clicking otherwise (empty or enemy) AND we have a selection, attempt move
+    
+    is_own_piece = (gs.white_to_move and piece.startswith('w')) or (not gs.white_to_move and piece.startswith('b'))
 
-    if sq_selected == (row, col): # Undo selection
-        sq_selected = ()
-        player_clicks = []
-        return
+    if is_own_piece:
+        # Select and Start Drag
+        sq_selected = (row, col)
+        player_clicks = [(row, col)]
+        cursor_pos[0], cursor_pos[1] = row, col
+        
+        dragging = True
+        drag_piece = piece
+        drag_start_pos = (row, col)
+        
+        # Initial drag pos
+        rect = canvas.getBoundingClientRect()
+        scale_x = canvas.width / rect.width
+        scale_y = canvas.height / rect.height
+        drag_current_pos = ((event.clientX - rect.left) * scale_x, (event.clientY - rect.top) * scale_y)
+        
+    elif len(player_clicks) > 0:
+        # Attempt move on click (no drag needed, this is the "click-dest" part)
+        attempt_move(player_clicks[0], (row, col))
 
-    if len(player_clicks) == 0:
-        # First click: Must select a piece of current turn's color
-        piece = gs.board[row][col]
-        if (gs.white_to_move and piece.startswith('w')) or (not gs.white_to_move and piece.startswith('b')):
-             sq_selected = (row, col)
-             player_clicks.append(sq_selected)
-             # Update cursor for visual feedback
-             cursor_pos[0], cursor_pos[1] = row, col
-    else:
-        # Second click
-        # Check if user clicked their own piece again (change selection)
-        piece = gs.board[row][col]
-        if (gs.white_to_move and piece.startswith('w')) or (not gs.white_to_move and piece.startswith('b')):
-            sq_selected = (row, col)
-            player_clicks = [sq_selected]
-            cursor_pos[0], cursor_pos[1] = row, col
-        else:
-            # Attempt move
-            move = Move(player_clicks[0], (row, col), gs.board)
-            # Check against valid moves
-            move_valid = False
-            for i in range(len(valid_moves)):
-                if move == valid_moves[i]:
-                    gs.make_move(valid_moves[i])
-                    move_made = True
-                    sq_selected = ()
-                    player_clicks = []
-                    move_valid = True
-                    cursor_pos[0], cursor_pos[1] = row, col
-                    break
+def on_mouse_up(event):
+    global dragging, drag_piece, sq_selected, player_clicks
+    
+    if not dragging: return
+    
+    dragging = False
+    drag_piece = None
+    
+    row, col = get_mouse_pos(event)
+    
+    # If released on same square, Keep Selected (do nothing, allow click-move next)
+    if (row, col) == drag_start_pos:
+        return
+        
+    # If released on valid target, Move
+    if 0 <= row < DIMENSION and 0 <= col < DIMENSION:
+        attempt_move(drag_start_pos, (row, col))
+        
+def attempt_move(start_sq, end_sq):
+    global move_made, sq_selected, player_clicks, valid_moves, cursor_pos
+    
+    move = Move(start_sq, end_sq, gs.board)
+    move_valid = False
+    for i in range(len(valid_moves)):
+        if move == valid_moves[i]:
+            gs.make_move(valid_moves[i])
+            move_made = True
+            sq_selected = () # Deselect after move
+            player_clicks = []
+            move_valid = True
+            cursor_pos[0], cursor_pos[1] = end_sq[0], end_sq[1]
+            break
             
-            if not move_valid:
-                # Invalid move attempted -> Deselect
-                sq_selected = ()
-                player_clicks = []
+    if not move_valid:
+        # Invalid move attempted -> just Deselect? 
+        # Or keep selected if it was a drag failure?
+        # Let's deselect to clean up state
+        if end_sq != start_sq:
+            sq_selected = ()
+            player_clicks = []
 
 
 # Bind Events
 down_proxy = create_proxy(on_key_down)
 up_proxy = create_proxy(on_key_up)
 click_proxy = create_proxy(on_mouse_down)
+move_proxy = create_proxy(on_mouse_move)
+up_click_proxy = create_proxy(on_mouse_up)
 
 document.addEventListener('keydown', down_proxy)
 document.addEventListener('keyup', up_proxy)
 canvas.addEventListener('mousedown', click_proxy)
+canvas.addEventListener('mousemove', move_proxy)
+canvas.addEventListener('mouseup', up_click_proxy)
+
 
 
 # ==========================================
@@ -944,6 +1000,31 @@ def update():
         valid_moves = gs.get_valid_moves()
         move_made = False
 
+    # Check for Game Over and Submit Score
+    if gs.checkmate or gs.stalemate:
+        if 'game_over_submitted' not in globals():
+            global game_over_submitted
+            game_over_submitted = False
+            
+        if not game_over_submitted:
+            game_over_submitted = True
+            
+            final_score = 0
+            # If Black cannot move (white_to_move is False), then White delivered checkmate -> Win
+            if gs.checkmate and not gs.white_to_move:
+                elapsed = time.time() - start_time
+                # Score formula: 1500 - (2 * seconds). Min 250.
+                final_score = max(250, min(1500, int(1500 - (elapsed * 2))))
+            
+            # Set global score for PyodideRunner to pick up
+            globals()['score'] = final_score
+            print(f"Game Over! Score: {final_score}")
+            
+            try:
+                window.setGameOver(True)
+            except Exception as e:
+                print(f"Error submitting game over: {e}")
+
 def draw():
     # Clear Screen
     ctx.fillStyle = '#000000'
@@ -963,15 +1044,35 @@ def draw():
             # Slight padding for grid effect
             ctx.fillRect(c * SQ_SIZE + 1, r * SQ_SIZE + 1, SQ_SIZE - 2, SQ_SIZE - 2)
             
-            # Highlight Cursor
-            if cursor_pos == [r, c]:
-                ctx.strokeStyle = '#00FF41'
-                ctx.lineWidth = 4
-                ctx.strokeRect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+            # Highlight Cursor/Hover
+            if hover_sq == (r, c):
+                 ctx.fillStyle = "rgba(255, 255, 255, 0.2)"
+                 ctx.fillRect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+            
+            # Highlight Selected
+            if sq_selected == (r, c):
+                ctx.fillStyle = "rgba(0, 255, 65, 0.4)"
+                ctx.fillRect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
 
-            # Draw Pieces
+            # Draw Valid Move Hints
+            if sq_selected:
+                for move in valid_moves:
+                     if move.start_row == sq_selected[0] and move.start_column == sq_selected[1]:
+                         if move.end_row == r and move.end_column == c:
+                             # Draw small dot
+                             ctx.fillStyle = "rgba(0, 255, 65, 0.6)"
+                             ctx.beginPath()
+                             cx = c * SQ_SIZE + SQ_SIZE / 2
+                             cy = r * SQ_SIZE + SQ_SIZE / 2
+                             ctx.arc(cx, cy, 8, 0, 2 * math.pi)
+                             ctx.fill()
+
+            # Draw Pieces (Skip dragged piece)
             piece = gs.board[r][c]
             if piece != '--':
+                if dragging and sq_selected == (r, c):
+                    continue # Don't draw piece here if we are dragging it
+                    
                 symbol = PIECES.get(piece, '?')
                 ctx.fillStyle = TEXT_COLOR
                 ctx.font = f"{int(SQ_SIZE * 0.8)}px monospace"
@@ -984,6 +1085,19 @@ def draw():
                 ctx.shadowBlur = 8
                 ctx.fillText(symbol, x, y)
                 ctx.shadowBlur = 0
+                
+    # Draw Dragged Piece
+    if dragging and drag_piece:
+        symbol = PIECES.get(drag_piece, '?')
+        ctx.fillStyle = TEXT_COLOR
+        ctx.font = f"{int(SQ_SIZE * 0.8)}px monospace"
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.shadowColor = "#00FF41"
+        ctx.shadowBlur = 12
+        ctx.fillText(symbol, drag_current_pos[0], drag_current_pos[1])
+        ctx.shadowBlur = 0
+
     
     # Game Over Text
     if gs.checkmate:
@@ -1003,12 +1117,14 @@ def draw():
         ctx.fillText("STALEMATE", BOARD_SIZE/2, BOARD_SIZE/2)
 
 def reset_game():
-    global gs, valid_moves, move_made, sq_selected, player_clicks
+    global gs, valid_moves, move_made, sq_selected, player_clicks, start_time, game_over_submitted
     gs = GameState()
     valid_moves = gs.get_valid_moves()
     move_made = False
     sq_selected = ()
     player_clicks = []
+    start_time = time.time()
+    game_over_submitted = False
     
 game_running = True
 req_id = None
@@ -1028,7 +1144,13 @@ def cleanup():
     game_running = False
     try: window.cancelAnimationFrame(req_id)
     except: pass
-    try: document.removeEventListener('keydown', down_proxy)
+    try: document.removeEventListener('keydown', down_proxy); down_proxy.destroy()
     except: pass
-    try: document.removeEventListener('keyup', up_proxy)
+    try: document.removeEventListener('keyup', up_proxy); up_proxy.destroy()
+    except: pass
+    try: 
+        if start_time: # checking if canvas events bound
+            canvas.removeEventListener('mousedown', click_proxy); click_proxy.destroy()
+            canvas.removeEventListener('mousemove', move_proxy); move_proxy.destroy()
+            canvas.removeEventListener('mouseup', up_click_proxy); up_click_proxy.destroy()
     except: pass

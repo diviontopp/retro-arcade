@@ -523,10 +523,9 @@ class Game:
                         elif count == 2: score_add = 1200 * self.level; action_str = "T-SPIN DOUBLE"
                         elif count == 3: score_add = 1600 * self.level; action_str = "T-SPIN TRIPLE"
                     else:
-                        if count == 1: score_add = 100 * self.level
-                        elif count == 2: score_add = 300 * self.level
-                        elif count == 3: score_add = 500 * self.level
-                        elif count == 4: score_add = 800 * self.level; action_str = "TETRIS"
+                        # User request: Each line gives 150 points
+                        score_add = count * 150
+                        if count == 4: action_str = "TETRIS"
 
                     if count == 4 or is_tspin:
                         if self.b2b:
