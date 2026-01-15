@@ -1109,11 +1109,7 @@ def draw():
         ctx.shadowBlur = 0
 
     
-    # Anti-Grav Watermark
-    ctx.fillStyle = "rgba(0, 255, 65, 0.4)" # Semitransparent Green
-    ctx.font = "30px 'Press Start 2P', monospace"
-    ctx.textAlign = "center"
-    ctx.fillText("ANTI-GRAV", BOARD_SIZE/2, BOARD_SIZE - 25)
+    # Anti-Grav Watermark Removed
 
     # Game Over Text
     if gs.checkmate:
