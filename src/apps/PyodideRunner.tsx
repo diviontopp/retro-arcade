@@ -160,7 +160,7 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                     if (pyodide) {
                         pyodide.runPython(`
 try:
-    if 'score' in globals() and 'submitScore' in globals():
+    if 'score' in globals() and 'submitScore' in globals() and not globals().get('score_submitted', False):
         submitScore(score)
 except:
     pass

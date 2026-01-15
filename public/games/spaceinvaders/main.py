@@ -203,6 +203,9 @@ class Game:
         self.last_shot_time = 0
         self.spawn_enemies()
         self.spawn_shields()
+        self.score_submitted = False
+        try: js.window.pyodide.globals['score_submitted'] = False
+        except: pass
         try: js.window.setGameOver(False)
         except: pass
 
@@ -326,8 +329,13 @@ class Game:
                          invaders_game.state = GameStateEnum.GAME_OVER
                          try: js.window.setGameOver(True)
                          except: pass
-                         try: js.window.submitScore(invaders_game.score)
-                         except: pass
+                         if not getattr(invaders_game, 'score_submitted', False):
+                             try: js.window.submitScore(invaders_game.score)
+                             except: pass
+                             invaders_game.score_submitted = True
+                             # Set global for cleanup check
+                             try: js.window.pyodide.globals['score_submitted'] = True
+                             except: pass
         
         self.enemies = [e for e in self.enemies if e.active]
         if not self.enemies and (not self.boss or not self.boss.active):

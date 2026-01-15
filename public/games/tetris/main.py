@@ -420,6 +420,9 @@ class Game:
         self.action_text = ""
         self.action_timer = 0
         self.lines_cleared_batch = []
+        self.score_submitted = False
+        try: js.window.pyodide.globals['score_submitted'] = False
+        except: pass
         js.window.setGameOver(False)
         
     def spawn_piece(self):
@@ -441,7 +444,11 @@ class Game:
             js.window.triggerSFX('game_over')
             js.window.setGameOver(True)
             try:
-                js.window.submitScore(self.score)
+                if not getattr(self, 'score_submitted', False):
+                    js.window.submitScore(self.score)
+                    self.score_submitted = True
+                    # Set global for cleanup check
+                    js.window.pyodide.globals['score_submitted'] = True
             except:
                 pass
         

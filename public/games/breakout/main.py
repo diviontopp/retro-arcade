@@ -285,13 +285,14 @@ js.document.addEventListener('keydown', down_proxy)
 js.document.addEventListener('keyup', up_proxy)
 
 def reset_game():
-    global score, lives, game_over, level, level_complete, level_complete_timer
+    global score, lives, game_over, level, level_complete, level_complete_timer, score_submitted
     score = 0
     lives = 3
     level = 1
     game_over = False
     level_complete = False
     level_complete_timer = 0
+    score_submitted = False
     try: js.window.setGameOver(False)
     except: pass
     init_bricks()
@@ -370,7 +371,9 @@ def update():
             except: pass
             try: 
                 js.window.triggerSFX('game_over')
-                if score > 0: js.window.submitScore(score)
+                if score > 0 and not score_submitted: 
+                     js.window.submitScore(score)
+                     score_submitted = True
             except: pass
         else:
             ball.reset()
