@@ -211,6 +211,9 @@ def draw():
     
     ctx.restore()
 
+# Loop
+last_time = 0
+req_id = None
 
 def loop(timestamp):
     global last_time, req_id
