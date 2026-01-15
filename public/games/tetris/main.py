@@ -185,81 +185,96 @@ canvas.height = CANVAS_HEIGHT
 ctx = canvas.getContext('2d')
 ctx.imageSmoothingEnabled = False
 
-class InputState:
-    def __init__(self):
-        self.pressed = {}
-        self.just_pressed = {}
-        
-    def set(self, key, state):
-        if key not in self.pressed: self.pressed[key] = False
-        if not self.pressed[key] and state:
-            self.just_pressed[key] = True
-        self.pressed[key] = state
-        
-    def check(self, key):
-        return self.pressed.get(key, False)
-        
-    def check_new(self, key):
-        res = self.just_pressed.get(key, False)
-        self.just_pressed[key] = False
-        return res
+# =============================================================================
+# INPUT SYSTEM (Optimized)
+# =============================================================================
 
-input_state = InputState()
+# Key Map indices from PyodideRunner.tsx
+KEY_UP = 0
+KEY_DOWN = 1
+KEY_LEFT = 2
+KEY_RIGHT = 3
+KEY_SPACE = 4
+KEY_ENTER = 5
+KEY_ESC = 6
+KEY_Z = 7
+KEY_X = 8
 
-def on_key(e, state):
-    k = e.key.lower()
-    mapping = {
-        'arrowleft': 'a', 'arrowright': 'd', 'arrowup': 'w', 'arrowdown': 's',
-        'enter': 'enter', 'escape': 'escape', ' ': 'space', 'z': 'z', 'x': 'x',
-        'a': 'a', 'd': 'd', 's': 's', 'w': 'w'
-    }
-    if k in mapping: input_state.set(mapping[k], state)
+class InputWrapper:
+    def check(self, key_str):
+        # Map string names to fast_input indices
+        if key_str == 'a' or key_str == 'left': return fast_input.check(KEY_LEFT)
+        if key_str == 'd' or key_str == 'right': return fast_input.check(KEY_RIGHT)
+        if key_str == 'w' or key_str == 'up': return fast_input.check(KEY_UP)
+        if key_str == 's' or key_str == 'down': return fast_input.check(KEY_DOWN)
+        if key_str == 'space': return fast_input.check(KEY_SPACE)
+        if key_str == 'enter': return fast_input.check(KEY_ENTER)
+        if key_str == 'escape': return fast_input.check(KEY_ESC)
+        if key_str == 'z': return fast_input.check(KEY_Z)
+        return False
 
-down_proxy = create_proxy(lambda e: on_key(e, True))
-up_proxy = create_proxy(lambda e: on_key(e, False))
-js.document.addEventListener('keydown', down_proxy)
-js.document.addEventListener('keyup', up_proxy)
+    def check_new(self, key_str):
+        if key_str == 'a' or key_str == 'left': return fast_input.check_new(KEY_LEFT)
+        if key_str == 'd' or key_str == 'right': return fast_input.check_new(KEY_RIGHT)
+        if key_str == 'w' or key_str == 'up': return fast_input.check_new(KEY_UP)
+        if key_str == 's' or key_str == 'down': return fast_input.check_new(KEY_DOWN)
+        if key_str == 'space': return fast_input.check_new(KEY_SPACE)
+        if key_str == 'enter': return fast_input.check_new(KEY_ENTER)
+        if key_str == 'escape': return fast_input.check_new(KEY_ESC)
+        if key_str == 'z': return fast_input.check_new(KEY_Z)
+        return False
+
+input_state = InputWrapper()
+
 
 # =============================================================================
 # ENGINE
 # =============================================================================
 
-class Renderer:
-    def clear(self):
+    def __init__(self):
+        self.bg_cache = None
+
+    def create_background(self):
+        # Create an offscreen canvas to cache the background
+        self.bg_cache = js.document.createElement('canvas')
+        self.bg_cache.width = CANVAS_WIDTH
+        self.bg_cache.height = CANVAS_HEIGHT
+        bg_ctx = self.bg_cache.getContext('2d')
+        
         # Draw Background Pattern
-        # Complex "Circuit" pattern
-        # We can implement a simple visual trick:
-        # Fill grey.
-        ctx.fillStyle = COL_BG_LIGHT # Base grey
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
+        bg_ctx.fillStyle = COL_BG_LIGHT # Base grey
+        bg_ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
         
         # Draw dark "recesses" to form the pattern
-        ctx.fillStyle = COL_BG_DIM
+        bg_ctx.fillStyle = COL_BG_DIM
         
-        # A simple algorithm to generate maze-like blocks:
-        # Tile size 32x32.
-        # Draw a shape in each tile.
         ts = 32
         for y in range(0, CANVAS_HEIGHT, ts):
             for x in range(0, CANVAS_WIDTH, ts):
                 # Pseudo-random but deterministic based on coords
                 r = (x * 7 + y * 13) % 4
                 
-                # Draw varied shapes to mimic the reference artifact
                 if r == 0:
-                    ctx.fillRect(x + 4, y + 4, 24, 8) # Top horiz
-                    ctx.fillRect(x + 20, y + 12, 8, 16) # Right vert down
+                    bg_ctx.fillRect(x + 4, y + 4, 24, 8) 
+                    bg_ctx.fillRect(x + 20, y + 12, 8, 16)
                 elif r == 1:
-                    ctx.fillRect(x + 4, y + 4, 8, 24) # Left vert
-                    ctx.fillRect(x + 12, y + 20, 16, 8) # Bot horiz
+                    bg_ctx.fillRect(x + 4, y + 4, 8, 24)
+                    bg_ctx.fillRect(x + 12, y + 20, 16, 8)
                 elif r == 2:
-                    ctx.fillRect(x + 4, y + 4, 24, 24) # Big box
-                    ctx.fillStyle = COL_BG_LIGHT
-                    ctx.fillRect(x + 8, y + 8, 16, 16) # Inner hole
-                    ctx.fillStyle = COL_BG_DIM
+                    bg_ctx.fillRect(x + 4, y + 4, 24, 24)
+                    bg_ctx.fillStyle = COL_BG_LIGHT
+                    bg_ctx.fillRect(x + 8, y + 8, 16, 16)
+                    bg_ctx.fillStyle = COL_BG_DIM
                 elif r == 3:
-                     ctx.fillRect(x+4, y+4, 24, 8)
-                     ctx.fillRect(x+4, y+20, 24, 8)
+                     bg_ctx.fillRect(x+4, y+4, 24, 8)
+                     bg_ctx.fillRect(x+4, y+20, 24, 8)
+
+    def clear(self):
+        if not self.bg_cache:
+            self.create_background()
+        
+        # Draw cached background
+        ctx.drawImage(self.bg_cache, 0, 0)
 
     def draw_box(self, x, y, w, h, title="", title_offset=0):
         # Outer Cyan
@@ -734,20 +749,6 @@ def cleanup():
     
     try:
         js.window.cancelAnimationFrame(game_req_id)
-    except Exception:
-        pass
-    
-    try:
-        if 'down_proxy' in globals():
-            js.document.removeEventListener('keydown', down_proxy)
-            down_proxy.destroy()
-    except Exception:
-        pass
-    
-    try:
-        if 'up_proxy' in globals():
-            js.document.removeEventListener('keyup', up_proxy)
-            up_proxy.destroy()
     except Exception:
         pass
     

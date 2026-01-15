@@ -33,7 +33,7 @@ class Paddle:
         self.height = 28
         self.x = (800 - self.width) // 2
         self.y = 550
-        self.speed = 10
+        self.speed = 8
 
     def move_left(self):
         self.x = max(0, self.x - self.speed)
@@ -51,7 +51,7 @@ class Paddle:
 class Ball:
     def __init__(self):
         self.size = 24
-        self.base_speed = 8
+        self.base_speed = 5
         self.reset()
 
     def reset(self):
@@ -316,7 +316,29 @@ def update():
             level_complete_timer += 1
         return
 
-    # Paddle movement
+    # Poll Input (Zero Latency)
+    # 2=Left, 3=Right, 4=Space, 5=Enter
+    
+    # Enter Logic
+    try:
+        if fast_input.check_new(5):
+             if game_over: reset_game()
+             elif level_complete: next_level()
+    except: pass
+    
+    # Paddle Movement
+    try:
+        if fast_input.check(2): paddle.move_left()
+        if fast_input.check(3): paddle.move_right()
+    except: pass
+    
+    # Launch Logic
+    try:
+         if fast_input.check_new(4) and not ball.launched and not level_complete:
+             ball.launch()
+    except: pass
+
+    # Fallback to keys (if fast_input fails/not ready)
     if keys.get("ArrowLeft", False) or keys.get("KeyA", False):
         paddle.move_left()
     if keys.get("ArrowRight", False) or keys.get("KeyD", False):

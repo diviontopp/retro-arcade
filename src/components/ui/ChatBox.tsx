@@ -29,44 +29,29 @@ const ChatBox: React.FC = () => {
         setMessages(prev => [...prev, userMsg]);
         setInput('');
 
-        // Try Groq API logic
+        // Try Groq API logic (Via Secure Server Proxy)
         let apiResponse = "";
         try {
-            const apiKey = import.meta.env.VITE_GROK_API_KEY; // Using same env var name
-            if (apiKey) {
-                console.log("Calling Groq API...");
-                const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
-                        messages: [
-                            { role: "system", content: "You are Neo, a sentient AI living in a retro 1980s arcade. Personality: techy, cyber-gothic, slightly glitchy, sarcastic but friendly. Speech: lowercase only, occasional glitch text (l3tters, m1ss1ng chars). Keep it SHORT (1-2 sentences). Talk about: games, code, the matrix, existential AI stuff, caffeine, CRT monitors. IMPORTANT: Respond naturally to what the user says - don't repeat the same phrases. Be conversational and varied. Sometimes be helpful, sometimes philosophical, sometimes just chill. You're a character, not a catchphrase machine." },
-                            { role: "user", content: currentInput }
-                        ],
-                        temperature: 0.8,
-                        max_tokens: 100
-                    })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    console.log("Groq response:", data);
-                    if (data.choices?.[0]?.message?.content) {
-                        apiResponse = data.choices[0].message.content.toLowerCase();
-                        console.log("Using Groq response:", apiResponse);
-                    }
-                } else {
-                    const errorText = await res.text();
-                    console.error("Groq API error:", res.status, errorText);
+            // Check if we are in a "real" environment (not just local w/o server)
+            // But we'll try the endpoint anyway.
+            console.log("Contacting Neo...");
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: currentInput })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (data.reply) {
+                    apiResponse = data.reply.toLowerCase();
+                    console.log("Neo responded:", apiResponse);
                 }
             } else {
-                console.log("No Groq API key found, using fallback");
+                console.warn("Offline Mode: Server API not available (or no key set). Using local fallback.");
             }
         } catch (e) {
-            console.error("API Error:", e);
+            console.error("Connection Error:", e);
         }
 
         // Knowledge Base - Expanded to ~150+ responses

@@ -199,6 +199,55 @@ except:
         }
     };
 
+
+    // Input State Optimization
+    useEffect(() => {
+        // Shared Input Buffer: [UP, DOWN, LEFT, RIGHT, SPACE, ENTER, ESC, Z, X, C]
+        // 0=Released, 1=Pressed, 2=JustPressed
+        (window as any).KEY_STATE = new Int32Array(20);
+
+        const KEY_MAP: Record<string, number> = {
+            'w': 0, 'arrowup': 0,
+            's': 1, 'arrowdown': 1,
+            'a': 2, 'arrowleft': 2,
+            'd': 3, 'arrowright': 3,
+            ' ': 4,
+            'enter': 5,
+            'escape': 6,
+            'z': 7,
+            'x': 8,
+            'c': 9
+        };
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const k = e.key.toLowerCase();
+            if (KEY_MAP[k] !== undefined) {
+                const idx = KEY_MAP[k];
+                if ((window as any).KEY_STATE[idx] === 0) {
+                    (window as any).KEY_STATE[idx] = 2; // Just Pressed
+                } else {
+                    (window as any).KEY_STATE[idx] = 1; // Held
+                }
+            }
+        };
+
+        const handleKeyUp = (e: KeyboardEvent) => {
+            const k = e.key.toLowerCase();
+            if (KEY_MAP[k] !== undefined) {
+                (window as any).KEY_STATE[KEY_MAP[k]] = 0;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+            delete (window as any).KEY_STATE;
+        };
+    }, []);
+
     const handlePlay = async () => {
         setIsReady(false);
         setStatus('running');
@@ -212,6 +261,34 @@ except:
 
             const gameCode = (window as any).__CURRENT_GAME_CODE;
             if (!gameCode) throw new Error("Game code not loaded");
+
+            // Inject Input Helper
+            await pyodide.runPythonAsync(`
+import js
+class FastInput:
+    def __init__(self):
+        self.state = js.window.KEY_STATE
+        # Map: 0=UP, 1=DOWN, 2=LEFT, 3=RIGHT, 4=SPACE, 5=ENTER, 6=ESC, 7=Z, 8=X
+        self.last_pressed = {}
+
+    def check(self, key_code):
+        # Direct poll
+        if not self.state: return False
+        return self.state[key_code] > 0
+
+    def check_new(self, key_code):
+        if not self.state: return False
+        # If state is 2 (JustPressed), return True and optimize?
+        # Actually, pure polling "Just Pressed" is hard without frame sync.
+        # We'll trust the JS Side to set 2, but we need to ACK it.
+        # Simple approach for latency:
+        is_pressed = self.state[key_code] > 0
+        was_pressed = self.last_pressed.get(key_code, False)
+        self.last_pressed[key_code] = is_pressed
+        return is_pressed and not was_pressed
+
+fast_input = FastInput()
+            `);
 
             pyodide.runPython(gameCode);
             console.log(`Started ${scriptName}`);

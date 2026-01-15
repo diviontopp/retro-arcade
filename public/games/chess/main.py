@@ -719,8 +719,17 @@ def get_mouse_pos(event):
     y = (event.clientY - rect.top) * scale_y
     return int(y // SQ_SIZE), int(x // SQ_SIZE)
 
+# Throttling state
+last_mouse_time = 0
+
 def on_mouse_move(event):
-    global hover_sq, dragging, drag_current_pos
+    global hover_sq, dragging, drag_current_pos, last_mouse_time
+    
+    # Throttle to ~60 FPS (16ms)
+    now = time.time()
+    if now - last_mouse_time < 0.016:
+        return
+    last_mouse_time = now
     
     # Update hover square
     row, col = get_mouse_pos(event)
