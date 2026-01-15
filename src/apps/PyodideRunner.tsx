@@ -24,6 +24,7 @@ const SCRIPT_PATHS: Record<string, string> = {
     breakout: '/games/breakout/main.py',
     tetris: '/games/tetris/main.py',
     invaders: '/games/spaceinvaders/main.py',
+    chess: '/games/chess/main.py',
 };
 
 const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) => {
@@ -55,6 +56,9 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
             }
         };
         (window as any).submitScore = (score: number) => {
+            // Disable score saving for Chess
+            if (scriptName === 'chess') return;
+
             const user = auth.currentUser;
             const username = user?.displayName || user?.email?.split('@')[0] || 'Guest';
             ScoreService.saveScore(scriptName, score, user?.uid, username);

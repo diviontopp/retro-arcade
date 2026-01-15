@@ -272,7 +272,7 @@ class Game:
         
         # Enemy Shooting (Random) - Significantly Reduced
         # Base chance 0.005 (0.5%) + tiny scaling
-        if random.random() < 0.005 + (self.level * 0.001):
+        if random.random() < 0.001 + (self.level * 0.001):
             shooting_candidates = [e for e in self.enemies if e.active]
             if shooting_candidates:
                 shooter = random.choice(shooting_candidates)
