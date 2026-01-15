@@ -275,12 +275,12 @@ const DefaultContent: React.FC = () => (
         }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: 'slateblue', fontWeight: 'bold', fontSize: '26px' }}>github :</span>
-                <a href="https://github.com/diviontopp/arcade" target="_blank" rel="noopener noreferrer" style={{
+                <a href="https://github.com/diviontopp/retro-arcade" target="_blank" rel="noopener noreferrer" style={{
                     color: 'coral',
                     cursor: 'pointer',
                     textDecoration: 'none'
                 }}>
-                    https://github.com/diviontopp/arcade
+                    https://github.com/diviontopp/retro-arcade
                 </a>
             </div>
         </div>
