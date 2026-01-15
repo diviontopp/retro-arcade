@@ -14,31 +14,71 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
     }, []);
 
 
-    // Retro App Icon Button
-    const AppButton: React.FC<{ icon: string; title: string; onClick: () => void }> = ({ icon, title, onClick }) => (
-        <button
-            title={title}
-            onClick={onClick}
-            style={{
-                width: '40px',
-                height: '40px',
-                padding: '0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                backgroundColor: 'var(--primary)',
-                color: 'black',  // Icons are black on green
-                border: 'none',
-                marginRight: '8px',
-                cursor: 'pointer',
-                imageRendering: 'pixelated'
-            }}
-            className="retro-app-btn"
-        >
-            {icon}
-        </button>
-    );
+    // Retro App Icon Button - supports both emoji and image with hover text transformation
+    const AppButton: React.FC<{ icon: string; title: string; onClick: () => void; isImage?: boolean }> = ({ icon, title, onClick, isImage = false }) => {
+        const [isHovered, setIsHovered] = useState(false);
+
+        const handleMouseEnter = React.useCallback(() => {
+            setIsHovered(true);
+        }, []);
+
+        const handleMouseLeave = React.useCallback(() => {
+            setIsHovered(false);
+        }, []);
+
+        return (
+            <button
+                onClick={onClick}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                style={{
+                    width: isHovered ? 'auto' : '40px',
+                    minWidth: '40px',
+                    height: '40px',
+                    padding: isHovered ? '0 12px' : '0',
+                    marginRight: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: isHovered ? '13px' : (isImage ? '0' : '24px'),
+                    backgroundColor: isHovered ? 'black' : 'var(--primary)',
+                    color: isHovered ? 'var(--primary)' : 'black',
+                    border: isHovered ? '2px solid var(--primary)' : 'none',
+                    cursor: 'pointer',
+                    imageRendering: 'pixelated',
+                    overflow: 'hidden',
+                    fontWeight: 'bold',
+                    fontFamily: 'monospace',
+                    textTransform: 'uppercase',
+                    transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    whiteSpace: 'nowrap',
+                    textShadow: isHovered ? '0 0 10px var(--primary), 0 0 20px var(--primary)' : 'none',
+                    boxShadow: isHovered ? '0 0 15px rgba(0, 255, 0, 0.3)' : 'none',
+                    willChange: 'width, background-color, color'
+                }}
+                className="retro-app-btn"
+            >
+                {isHovered ? (
+                    title
+                ) : (
+                    isImage ? (
+                        <img
+                            src={icon}
+                            alt={title}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                pointerEvents: 'none'
+                            }}
+                        />
+                    ) : (
+                        icon
+                    )
+                )}
+            </button>
+        );
+    };
 
     // Music Player Control Button
     const MusicBtn: React.FC<{ label: string; onClick?: () => void }> = ({ label, onClick }) => (
@@ -74,32 +114,54 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
             overflowX: 'auto'
         }}>
             {/* System / Core */}
-            <AppButton icon="🏠" title="home" onClick={() => onOpenWindow('HOME')} />
-            <AppButton icon="🕐" title="clock" onClick={() => onOpenWindow('CLOCK')} />
+            <AppButton icon="/icons/home.png" title="home" onClick={() => onOpenWindow('HOME')} isImage />
+            <AppButton icon="/icons/clock.png" title="clock" onClick={() => onOpenWindow('CLOCK')} isImage />
 
             {/* Divider */}
             <div style={{ width: '2px', height: '40px', background: 'var(--primary)', margin: '0 16px' }}></div>
 
             {/* Apps Collection */}
-            <AppButton icon="🖼️" title="background" onClick={() => onOpenWindow('BG_CYCLE')} />
-            <AppButton icon="🪲" title="avatar" onClick={() => onOpenWindow('AVATAR_TOGGLE')} />
-            <AppButton icon="🐞" title="random" onClick={() => onOpenWindow('RANDOM')} />
+            <AppButton icon="/icons/bug.png" title="avatar" onClick={() => onOpenWindow('AVATAR_TOGGLE')} isImage />
+            <AppButton icon="/icons/random.png" title="random" onClick={() => onOpenWindow('RANDOM')} isImage />
 
             <div style={{ width: '2px', height: '40px', background: 'var(--primary)', margin: '0 16px' }}></div>
 
             <div style={{ display: 'flex', gap: '2px' }}>
-                <AppButton icon="🅰️" title="search" onClick={() => onOpenWindow('SEARCH')} />
-                <AppButton icon="📷" title="gallery" onClick={() => onOpenWindow('GALLERY')} />
-                <AppButton icon="📅" title="calendar" onClick={() => onOpenWindow('CALENDAR')} />
-                <AppButton icon="🧮" title="calc" onClick={() => onOpenWindow('CALC')} />
-                <AppButton icon="📓" title="comic" onClick={() => onOpenWindow('COMIC')} />
-                <AppButton icon="📟" title="terminal" onClick={() => onOpenWindow('TERMINAL')} />
-                <AppButton icon="🥚" title="pet" onClick={() => onOpenWindow('PET')} />
-                <AppButton icon="👁️" title="monitor" onClick={() => onOpenWindow('MONITOR')} />
-                <AppButton icon="📝" title="notepad" onClick={() => onOpenWindow('NOTEPAD')} />
-                <AppButton icon="🎨" title="paint" onClick={() => onOpenWindow('PAINT')} />
-                <AppButton icon="⏱️" title="stopwatch" onClick={() => onOpenWindow('STOPWATCH')} />
-                <AppButton icon="🔑" title="login" onClick={() => onOpenWindow('LOGIN')} />
+                <AppButton icon="/icons/text.png" title="search" onClick={() => onOpenWindow('SEARCH')} isImage />
+                <AppButton icon="/icons/image.png" title="gallery" onClick={() => onOpenWindow('GALLERY')} isImage />
+                <AppButton icon="/icons/calendar.png" title="calendar" onClick={() => onOpenWindow('CALENDAR')} isImage />
+                <AppButton icon="/icons/calculator.png" title="calc" onClick={() => onOpenWindow('CALC')} isImage />
+                <AppButton icon="/icons/terminal.png" title="terminal" onClick={() => onOpenWindow('TERMINAL')} isImage />
+                <AppButton icon="/icons/pet.png" title="pet" onClick={() => onOpenWindow('PET')} isImage />
+                <AppButton icon="/icons/monitor.png" title="monitor" onClick={() => onOpenWindow('MONITOR')} isImage />
+                <AppButton icon="/icons/notepad.png" title="notepad" onClick={() => onOpenWindow('NOTEPAD')} isImage />
+                <AppButton icon="/icons/paint.png" title="paint" onClick={() => onOpenWindow('PAINT')} isImage />
+
+                <AppButton icon="/icons/stopwatch.png" title="stopwatch" onClick={() => onOpenWindow('STOPWATCH')} isImage />
+
+                {/* Login Button - Custom with Text */}
+                <button
+                    onClick={() => onOpenWindow('LOGIN')}
+                    style={{
+                        height: '40px',
+                        padding: '0 12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '14px',
+                        backgroundColor: 'black',
+                        color: 'var(--primary)',
+                        border: '2px solid var(--primary)',
+                        marginRight: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                        fontFamily: 'monospace',
+                        gap: '6px'
+                    }}
+                    className="retro-app-btn"
+                >
+                    <img src="/icons/login.png" alt="login" style={{ width: '24px', height: '24px', imageRendering: 'pixelated' }} /> LOGIN
+                </button>
             </div>
 
             <div style={{ flex: 1 }}></div>
@@ -165,7 +227,11 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
                 .retro-app-btn:hover {
                     filter: brightness(1.2); /* Slightly brighter green on hover */
                 }
-                /* No marquee animation needed for music player title */
+                
+                /* Custom Tooltip Hover Effect */
+                .app-button-container:hover .custom-tooltip {
+                    opacity: 1 !important;
+                }
             `}</style>
         </div>
     );

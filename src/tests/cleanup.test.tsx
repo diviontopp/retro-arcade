@@ -21,12 +21,16 @@ vi.mock('../components/fx/Animations', () => ({
 }));
 
 // Mock global video
-vi.mock('../App', async (importOriginal) => {
-    return await importOriginal();
-});
+
 
 describe('System Integrity Tests', () => {
     beforeAll(() => {
+        // Mock loadPyodide
+        (window as any).loadPyodide = vi.fn().mockResolvedValue({
+            loadPackage: vi.fn(),
+            FS: { writeFile: vi.fn() },
+        });
+
         Object.defineProperty(window, 'matchMedia', {
             writable: true,
             value: vi.fn().mockImplementation(query => ({

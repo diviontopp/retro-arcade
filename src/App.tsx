@@ -16,12 +16,23 @@ import {
 import audioBus from './services/AudioBus';
 import { initMobileControls, removeMobileControls } from './services/MobileControls';
 
+import { usePyodide } from './hooks/usePyodide';
 import { LoginApp } from './apps/LoginApp';
+
+// ... (other imports remain, but remove gameUtils import if handled by hook OR pass it to hook)
+// Actually the hook I wrote handles the *loading* but not the *utils writing* yet.
+// I should update the hook to write utils or keep that part here.
+// The hook I wrote *just* loads.
+
+// Let's stick to the plan: Simplify App.tsx. I will move the global loader OUT of App.tsx but keep the effect simple.
 
 function App() {
   const [isBooting, setIsBooting] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+  // Use the hook
+  usePyodide();
 
   useEffect(() => {
     if (videoRef.current) {
@@ -159,8 +170,7 @@ function App() {
       case 'HOME': return <HomeApp />;
       case 'GALLERY': return <GalleryApp />;
       case 'LOGIN': return <LoginApp />;
-      // TECH_STACK removed - handled by main content mode
-      case 'BG_CYCLE': return <div style={{ padding: '20px' }}>background cycle<br />[coming soon]</div>;
+      // TECH_STACK removed - handled by main content
       case 'AVATAR_TOGGLE': return <div style={{ padding: '20px' }}>avatar toggle<br />[coming soon]</div>;
       // Games
       case 'SNAKE': return <PyodideRunner scriptName="snake" onClose={onClose} />;
@@ -213,17 +223,22 @@ function App() {
           loop
           muted
           playsInline
-          src="/webload.mp4"
+          src="/back.mp4"
           style={{
             position: 'absolute',
             top: 0,
-            left: 0,
-            width: '100%',
+            left: '-10%',
+            width: '110%',
             height: '100%',
             objectFit: 'cover',
-            objectPosition: 'center',
+            objectPosition: 'left center',
             zIndex: 0,
-            opacity: 0.8,
+            opacity: 1.0,
+            filter: 'brightness(1.2)',
+          }}
+          onLoadedMetadata={(e) => {
+            const video = e.currentTarget;
+            video.playbackRate = 0.5;
           }}
         />
 

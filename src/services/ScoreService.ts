@@ -1,5 +1,5 @@
 import { db } from './firebase';
-import { collection, addDoc, query, orderBy, limit, getDocs, where } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, limit, getDocs, where, onSnapshot } from 'firebase/firestore';
 
 export class ScoreService {
     private static STORAGE_KEY = 'arcade_scores';
@@ -50,6 +50,24 @@ export class ScoreService {
         } catch (e) {
             console.error("Error fetching scores: ", e);
             return [];
+        }
+    }
+
+    static subscribeToHighScores(gameId: string, callback: (scores: any[]) => void, limitCount = 10) {
+        try {
+            const q = query(
+                collection(db, "scores"),
+                where("gameId", "==", gameId),
+                orderBy("score", "desc"),
+                limit(limitCount)
+            );
+            return onSnapshot(q, (snapshot) => {
+                const scores = snapshot.docs.map(doc => doc.data());
+                callback(scores);
+            });
+        } catch (e) {
+            console.error("Error subscribing to scores: ", e);
+            return () => { }; // return no-op unsubscribe
         }
     }
 }

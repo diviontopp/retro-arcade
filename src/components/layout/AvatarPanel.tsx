@@ -22,7 +22,7 @@ const AvatarPanel: React.FC = () => {
                 width: '100%',
                 height: '4px',
                 backgroundColor: 'var(--primary)',
-                marginBottom: '5px',
+                marginBottom: '0px',
                 marginTop: '0px'    // Aligned with main window header
             }}></div>
 

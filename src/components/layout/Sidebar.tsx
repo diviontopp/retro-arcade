@@ -7,12 +7,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onOpenGame, isMobile = false }) => {
-    const games = [
-        { id: 'SNAKE', label: 'snake', icon: '🐍', iconSrc: '/snake.mp4', isVideo: true },
-        { id: 'TETRIS', label: 'tetris', icon: '🧱', iconSrc: '/icons/tetris.png' },
-        { id: 'BREAKOUT', label: 'breakout', icon: '🏐', iconSrc: '/icons/breakout.png' },
-        { id: 'INVADERS', label: 'invaders', icon: '👾', iconSrc: '/icons/invaders.png' },
-        { id: 'ANTIGRAV', label: 'flappy bird', icon: '🐥', iconSrc: '/icons/flappy.png' },
+    const games: { id: string; label: string; icon: string; iconSrc: string; isVideo?: boolean }[] = [
+        { id: 'SNAKE', label: 'snake', icon: '🐍', iconSrc: '/games/snake/icon.png' },
+        { id: 'TETRIS', label: 'tetris', icon: '🧱', iconSrc: '/games/tetris/icon.png' },
+        { id: 'BREAKOUT', label: 'breakout', icon: '🏐', iconSrc: '/games/breakout/icon.png' },
+        { id: 'INVADERS', label: 'invaders', icon: '👾', iconSrc: '/games/spaceinvaders/icon.png' },
+        { id: 'ANTIGRAV', label: 'flappy bird', icon: '🐥', iconSrc: '/games/antigravity/icon.png' },
     ];
 
     // Additional "fake" links to match the density of the reference image

@@ -1,0 +1,5 @@
+src/components/layout/Sidebar.tsx(122,39): error TS2339: Property 'isVideo' does not exist on type '{ id: string; label: string; icon: string; iconSrc: string; }'.
+src/components/layout/Sidebar.tsx(184,35): error TS2339: Property 'isVideo' does not exist on type '{ id: string; label: string; icon: string; iconSrc: string; }'.
+vite.config.ts(8,3): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'test' does not exist in type 'UserConfigExport'.

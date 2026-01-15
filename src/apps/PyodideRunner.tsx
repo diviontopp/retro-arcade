@@ -9,37 +9,22 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 
-// Import Python scripts as raw strings using Vite's ?raw suffix
-import snakeScript from '../games/snake.py?raw';
-import breakoutScript from '../games/breakout.py?raw';
-import tetrisScript from '../games/tetris.py?raw';
-import invadersScript from '../games/invaders.py?raw';
-import antigravityScript from '../games/antigravity.py?raw';
-import gameUtilsScript from '../games/game_utils.py?raw';
-
 import { ScoreService } from '../services/ScoreService';
 import audioBus from '../services/AudioBus';
+import { auth } from '../services/firebase';
 
 interface PyodideRunnerProps {
     scriptName: string;
     onClose?: () => void;
 }
 
-// Python script mapping
-const PYTHON_SCRIPTS: Record<string, string> = {
-    snake: snakeScript,
-    breakout: breakoutScript,
-    tetris: tetrisScript,
-    invaders: invadersScript,
-    antigravity: antigravityScript,
-};
-
-const GAME_CONTROLS: Record<string, { desc: string; keys: string[] }> = {
-    snake: { desc: "Eat food to grow. Don't hit walls!", keys: ["WASD / ARROWS : Move"] },
-    breakout: { desc: "Destroy all bricks. Don't lose the ball!", keys: ["ARROWS / MOUSE : Move Paddle", "SPACE : Launch Ball"] },
-    tetris: { desc: "Clear lines by fitting blocks.", keys: ["ARROWS / WASD : Move & Rotate", "SPACE : Hard Drop"] },
-    invaders: { desc: "Defend Earth from alien invasion!", keys: ["ARROWS / WASD : Move Ship", "SPACE : Fire Laser"] },
-    antigravity: { desc: "Run as far as you can!", keys: ["SPACE : Flip Gravity"] },
+// Script Paths
+const SCRIPT_PATHS: Record<string, string> = {
+    snake: '/games/snake/main.py',
+    breakout: '/games/breakout/main.py',
+    tetris: '/games/tetris/main.py',
+    invaders: '/games/spaceinvaders/main.py',
+    antigravity: '/games/antigravity/main.py',
 };
 
 const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) => {
@@ -47,293 +32,461 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
     const [status, setStatus] = useState<'loading' | 'ready' | 'running' | 'error'>('loading');
     const [error, setError] = useState<string | null>(null);
     const [isGameOver, setIsGameOver] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    const [finalScore, setFinalScore] = useState<number>(0);
 
     const pyodideRef = useRef<any>(null);
-
-    // Initial load effect
-    useEffect(() => {
-        let mounted = true;
-
-        const loadPyodideEnv = async () => {
-            try {
-                setStatus('loading');
-
-                // Check if script exists first
-                const script = PYTHON_SCRIPTS[scriptName];
-                if (!script) throw new Error(`Script "${scriptName}" not found`);
-
-                // Check if Pyodide is already loaded script tag
-                if (!document.querySelector('script[src*="pyodide.js"]')) {
-                    const pyodideScript = document.createElement('script');
-                    pyodideScript.src = 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js';
-                    await new Promise((resolve, reject) => {
-                        pyodideScript.onload = resolve;
-                        pyodideScript.onerror = reject;
-                        document.head.appendChild(pyodideScript);
-                    });
-                } else if (!(window as any).loadPyodide) {
-                    await new Promise(r => setTimeout(r, 100));
-                }
-
-                if (!mounted) return;
-
-                // Initialize Pyodide if not already
-                if (!pyodideRef.current) {
-                    // @ts-ignore
-                    const pyodide = await window.loadPyodide({
-                        indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.24.1/full/'
-                    });
-                    pyodideRef.current = pyodide;
-                }
-
-                const pyodide = pyodideRef.current;
-
-                // Inject utils module
-                try {
-                    pyodide.FS.writeFile("game_utils.py", gameUtilsScript);
-                } catch (e) {
-                    // Ignore if already exists
-                }
-
-                if (mounted) {
-                    // READY to start - pause here and wait for user interaction
-                    setStatus('ready');
-                }
-
-            } catch (err) {
-                console.error('Pyodide error:', err);
-                if (mounted) {
-                    setStatus('error');
-                    setError(err instanceof Error ? err.message : 'Unknown error');
-                }
-            }
-        };
-
-        loadPyodideEnv();
-
-        return () => {
-            mounted = false;
-            // Cleanup on unmount
-            if (pyodideRef.current) {
-                try {
-                    pyodideRef.current.runPython(`
-                        try: cleanup()
-                        except: pass
-                    `);
-                } catch (e) { }
-            }
-        };
-    }, [scriptName]);
-
-    // Cleanup overlay logic (only for running state now)
-    // We already hide it manually when 'ready'.
 
     // Expose functions to Python
     useEffect(() => {
         (window as any).setGameOver = (state: boolean) => {
             setIsGameOver(state);
+            if (state) {
+                try {
+                    const pyodide = (window as any).pyodide;
+                    if (pyodide) {
+                        const score = pyodide.globals.get('score');
+                        if (typeof score === 'number') {
+                            setFinalScore(score);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Could not fetch score:", e);
+                }
+            }
         };
         (window as any).submitScore = (score: number) => {
-            ScoreService.saveScore(scriptName, score);
-            console.log(`Score saved for ${scriptName}: ${score}`);
+            const user = auth.currentUser;
+            const username = user?.displayName || user?.email?.split('@')[0] || 'Guest';
+            ScoreService.saveScore(scriptName, score, user?.uid, username);
+            console.log(`Score saved for ${scriptName}: ${score} by ${username}`);
+        };
+        (window as any).triggerSFX = (type: string) => {
+            audioBus.trigger(type);
         };
 
         return () => {
             delete (window as any).setGameOver;
             delete (window as any).submitScore;
+            delete (window as any).triggerSFX;
         };
     }, [scriptName]);
 
-    const handleStartGame = async () => {
-        if (pyodideRef.current && status === 'ready') {
-            try {
-                // Ensure audio is unlocked
-                audioBus.resume();
+    // Initial load effect
+    useEffect(() => {
+        if (!canvasRef.current) return;
 
-                setStatus('running');
-                const script = PYTHON_SCRIPTS[scriptName];
-                await pyodideRef.current.runPythonAsync(script);
-            } catch (err) {
-                console.error("Right after start:", err);
-                setStatus('error');
-                setError("Failed to start game script");
+        let isMounted = true;
+        let cleanupScript = false;
+
+        setIsReady(false);
+        setStatus('loading');
+
+        const startGameSequence = async () => {
+            const waitForPyodide = async () => {
+                let attempts = 0;
+                while (!(window as any).pyodide && attempts < 300) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+                const p = (window as any).pyodide;
+                if (!p) throw new Error("Pyodide failed to load globally.");
+                pyodideRef.current = p;
+                return p;
+            };
+
+            try {
+                // Fetch Scripts in parallel with loading
+                const scriptUrl = SCRIPT_PATHS[scriptName];
+                if (!scriptUrl) throw new Error(`Unknown script: ${scriptName}`);
+
+                const fetchGame = fetch(scriptUrl).then(res => {
+                    if (!res.ok) throw new Error(`Failed to load script: ${scriptName}`);
+                    return res.text();
+                });
+
+                const fetchUtils = fetch('/games/_common/game_utils.py').then(res => res.text()).catch(() => "");
+
+                const [pyodide, gameCode, utilsCode] = await Promise.all([
+                    waitForPyodide(),
+                    fetchGame,
+                    fetchUtils
+                ]);
+
+                if (!isMounted) return;
+
+                // Write Utils
+                if (utilsCode) {
+                    try {
+                        pyodide.FS.writeFile("game_utils.py", utilsCode, { encoding: "utf8" });
+                    } catch (e) {
+                        console.warn("Utils rewrite warning:", e);
+                    }
+                }
+
+                // Store code for play
+                (window as any).__CURRENT_GAME_CODE = gameCode;
+
+                const canvas = canvasRef.current;
+                const ctx = canvas?.getContext('2d');
+                if (ctx && canvas) {
+                    ctx.fillStyle = "#000000";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                if (isMounted) setIsReady(true);
+                if (isMounted) setStatus('ready');
+
+            } catch (err: any) {
+                console.error("Game Execution Error:", err);
+                if (isMounted) {
+                    setError(`Game Error: ${err.message}`);
+                    setStatus('error');
+                }
             }
-        }
-    };
+        };
+
+        startGameSequence();
+
+        return () => {
+            isMounted = false;
+            if (cleanupScript) {
+                // Cleanup logic unchanged
+                try {
+                    const pyodide = (window as any).pyodide;
+                    if (pyodide) {
+                        pyodide.runPython(`
+try:
+    if 'score' in globals() and 'submitScore' in globals():
+        submitScore(score)
+except:
+    pass
+`);
+                        pyodide.runPython(`
+try:
+    if 'cleanup' in globals():
+        cleanup()
+except Exception as e:
+    print(f"Cleanup error: {e}")
+`);
+                    }
+                } catch (e) {
+                    console.error("Cleanup failed:", e);
+                }
+            }
+        };
+    }, [scriptName]);
+
+    // ... (Score/SFX logic unchanged)
 
     const handleRetry = () => {
-        if (pyodideRef.current) {
-            try {
-                pyodideRef.current.runPython('reset_game()');
-                setIsGameOver(false);
-            } catch (e) {
-                console.error("Failed to retry:", e);
+        setIsGameOver(false);
+        try {
+            const pyodide = pyodideRef.current;
+            if (pyodide) {
+                pyodide.runPython(`
+try:
+    if 'reset_game' in globals():
+        reset_game()
+except:
+    pass
+`);
             }
+        } catch (e) {
+            console.error("Retry failed:", e);
+            setStatus('loading');
+            setTimeout(() => setStatus('ready'), 100);
         }
     };
 
-    const controls = GAME_CONTROLS[scriptName] || { desc: "GLHF", keys: [] };
+    const handlePlay = async () => {
+        setIsReady(false);
+        setStatus('running');
+        setIsGameOver(false);
+
+        try {
+            const pyodide = (window as any).pyodide;
+            if (!pyodide) return;
+
+            pyodide.setStdout({ batched: (msg: string) => console.log(`[Python]: ${msg}`) });
+
+            const gameCode = (window as any).__CURRENT_GAME_CODE;
+            if (!gameCode) throw new Error("Game code not loaded");
+
+            pyodide.runPython(gameCode);
+            console.log(`Started ${scriptName}`);
+        } catch (err: any) {
+            console.error("Game Execution Error:", err);
+            setError(`Game Error: ${err.message}`);
+            setStatus('error');
+        }
+    };
 
     return (
         <div style={{
+            position: 'relative',
             width: '100%',
             height: '100%',
+            backgroundColor: '#000',
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#000000',
-            position: 'relative',
+            alignItems: 'center',
             overflow: 'hidden'
         }}>
-            {/* Loading Video Overlay */}
-            {status === 'loading' && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, width: '100%', height: '100%',
-                    zIndex: 20, backgroundColor: 'black',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    <video
-                        src="/gameloading.mp4"
-                        autoPlay muted loop playsInline
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                </div>
-            )}
-
-            {/* CONTROLS / READY SCREEN */}
-            {status === 'ready' && (
-                <div style={{
-                    position: 'absolute',
-                    top: 0, left: 0, width: '100%', height: '100%',
-                    zIndex: 15,
-                    backgroundColor: 'rgba(0,0,0,0.95)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--primary)',
-                    padding: '20px',
-                    textAlign: 'center'
-                }}>
-                    <h1 style={{
-                        fontSize: '32px',
-                        marginBottom: '10px',
-                        textTransform: 'uppercase',
-                        textShadow: '2px 2px 0px #888'
-                    }}>
-                        {scriptName}.EXE
-                    </h1>
-
-                    <div style={{
-                        border: '2px dashed var(--primary)',
-                        padding: '20px',
-                        marginBottom: '30px',
-                        background: 'rgba(0, 255, 65, 0.1)'
-                    }}>
-                        <p style={{ marginBottom: '20px', fontSize: '18px', color: '#fff' }}>{controls.desc}</p>
-                        <ul style={{ listStyle: 'none', padding: 0 }}>
-                            {controls.keys.map((key, i) => (
-                                <li key={i} style={{ marginBottom: '8px', fontFamily: 'monospace', fontSize: '16px' }}>{key}</li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    <button
-                        onClick={handleStartGame}
-                        className="blink-btn"
-                        style={{
-                            fontSize: '24px',
-                            padding: '10px 40px',
-                            backgroundColor: 'var(--primary)',
-                            color: 'black',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                            fontFamily: 'inherit',
-                            boxShadow: '0 0 15px var(--primary)'
-                        }}
-                    >
-                        START GAME
-                    </button>
-
-                    <style>{`
-                        .blink-btn { animation: pulse-btn 1.5s infinite; }
-                        @keyframes pulse-btn { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
-                    `}</style>
-                </div>
-            )}
-
-            {status === 'error' && (
-                <div style={{ color: '#FF0040', padding: '20px' }}>ERROR: {error}</div>
-            )}
-
             <canvas
                 id="game-canvas"
                 ref={canvasRef}
                 style={{
-                    display: status === 'running' ? 'block' : 'none',
-                    border: '1px solid #00FF41',
-                    imageRendering: 'pixelated',
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain'
+                    boxShadow: '0 0 20px rgba(0, 255, 65, 0.2)',
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    imageRendering: 'pixelated'
                 }}
             />
 
-            {status === 'running' && isGameOver && (
+            {/* ERROR DISPLAY */}
+            {status === 'error' && (
+                <div style={{
+                    position: 'absolute',
+                    top: '50%', left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    color: 'red',
+                    textAlign: 'center',
+                    fontFamily: 'monospace',
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    padding: '20px',
+                    border: '1px solid red'
+                }}>
+                    <h3>SYSTEM ERROR</h3>
+                    <p>{error}</p>
+                    <button onClick={() => window.location.reload()} style={{ marginTop: '10px' }}>RELOAD SYSTEM</button>
+                </div>
+            )}
+
+            {/* READY SCREEN - Shows controls and PLAY button */}
+            {isReady && !isGameOver && (
                 <div style={{
                     position: 'absolute',
                     top: 0,
                     left: 0,
                     width: '100%',
                     height: '100%',
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)', // Translucent overlay
+                    backgroundColor: 'rgba(0, 0, 0, 0.95)',
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'center',
                     justifyContent: 'center',
-                    zIndex: 10
+                    alignItems: 'center',
+                    zIndex: 25
                 }}>
-                    <h2 style={{
-                        color: 'red',
-                        fontFamily: 'var(--font-primary)',
-                        fontSize: '32px',
-                        marginBottom: '20px',
-                        textShadow: '2px 2px 0px black',
-                        textTransform: 'uppercase'
-                    }}>GAME OVER</h2>
+                    {/* Game Title */}
+                    <h1 style={{
+                        fontFamily: '"Press Start 2P", monospace',
+                        fontSize: '56px',
+                        textAlign: 'center',
+                        margin: '0 0 60px 0',
+                        textTransform: 'uppercase',
+                        background: 'linear-gradient(180deg, #FFFF00 0%, #0000FF 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        filter: 'drop-shadow(4px 4px 0px #000)',
+                        letterSpacing: '5px'
+                    }}>
+                        {scriptName.toUpperCase()}
+                    </h1>
 
-                    <div style={{ display: 'flex', gap: '20px' }}>
+                    {/* Controls Display */}
+                    <div style={{
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        border: '3px solid #00FF41',
+                        padding: '30px 40px',
+                        marginBottom: '50px',
+                        borderRadius: '8px'
+                    }}>
+                        <h3 style={{
+                            fontFamily: '"Press Start 2P", monospace',
+                            fontSize: '16px',
+                            color: '#00FF41',
+                            marginBottom: '20px',
+                            textAlign: 'center'
+                        }}>
+                            CONTROLS
+                        </h3>
+                        <div style={{
+                            fontFamily: '"Press Start 2P", monospace',
+                            fontSize: '12px',
+                            color: '#FFFFFF',
+                            lineHeight: '2.5'
+                        }}>
+                            {scriptName === 'snake' && (
+                                <>
+                                    <div>MOVE: WASD / ARROW KEYS</div>
+                                    <div>RESTART: ENTER</div>
+                                </>
+                            )}
+                            {scriptName === 'tetris' && (
+                                <>
+                                    <div>MOVE: A/D OR ← →</div>
+                                    <div>ROTATE: W/Z OR ↑</div>
+                                    <div>DROP: S OR ↓</div>
+                                    <div>RESTART: ENTER</div>
+                                </>
+                            )}
+                            {scriptName === 'breakout' && (
+                                <>
+                                    <div>MOVE: WASD / ARROW KEYS</div>
+                                    <div>LAUNCH BALL: SPACE</div>
+                                    <div>RESTART: ENTER</div>
+                                </>
+                            )}
+                            {scriptName === 'invaders' && (
+                                <>
+                                    <div>MOVE: A/D OR ← →</div>
+                                    <div>SHOOT: SPACE</div>
+                                    <div>RESTART: ENTER</div>
+                                </>
+                            )}
+                            {scriptName === 'antigravity' && (
+                                <>
+                                    <div>FLIP GRAVITY: SPACE</div>
+                                    <div>RESTART: ENTER</div>
+                                </>
+                            )}
+                            {!['snake', 'tetris', 'breakout', 'invaders', 'antigravity'].includes(scriptName) && (
+                                <>
+                                    <div>MOVE: WASD / ARROW KEYS</div>
+                                    <div>ACTION: SPACE</div>
+                                    <div>RESTART: ENTER</div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* PLAY Button */}
+                    <button
+                        onClick={handlePlay}
+                        style={{
+                            padding: '20px 60px',
+                            backgroundColor: '#00FF41',
+                            color: '#000',
+                            border: '4px solid #005500',
+                            fontFamily: '"Press Start 2P", monospace',
+                            fontSize: '24px',
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                            transition: 'all 0.2s',
+                            borderRadius: '8px'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#fff';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#00FF41';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                    >
+                        PLAY
+                    </button>
+                </div>
+            )}
+
+            {/* GAME OVER OVERLAY */}
+            {isGameOver && (
+                <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 20,
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    {/* GAME OVER Text */}
+                    <h1 style={{
+                        fontFamily: '"Press Start 2P", monospace',
+                        fontSize: '48px',
+                        textAlign: 'center',
+                        margin: '0 0 60px 0',
+                        textTransform: 'uppercase',
+                        background: 'linear-gradient(180deg, #FFFF00 0%, #0000FF 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        filter: 'drop-shadow(4px 4px 0px #000)',
+                        letterSpacing: '5px'
+                    }}>
+                        GAME OVER
+                    </h1>
+
+                    {/* Score Display (Added) */}
+                    <div style={{
+                        fontFamily: '"Press Start 2P", monospace',
+                        fontSize: '24px',
+                        color: '#fff',
+                        marginBottom: '40px',
+                        textAlign: 'center',
+                        textTransform: 'uppercase',
+                        letterSpacing: '2px'
+                    }}>
+                        SCORE: <span style={{ color: '#00FF41' }}>{finalScore}</span>
+                    </div>
+
+                    {/* Buttons */}
+                    <div style={{ display: 'flex', gap: '30px' }}>
                         <button
                             onClick={handleRetry}
                             style={{
-                                padding: '8px 20px',
-                                backgroundColor: 'var(--primary)',
+                                padding: '16px 40px',
+                                backgroundColor: '#00FF41',
                                 color: '#000',
-                                border: 'none',
-                                fontFamily: 'var(--font-primary)',
-                                fontSize: '18px',
+                                border: '4px solid #005500',
+                                fontFamily: '"Press Start 2P", monospace',
+                                fontSize: '16px',
                                 cursor: 'pointer',
-                                fontWeight: 'bold'
+                                textTransform: 'uppercase',
+                                transition: 'all 0.2s',
+                                borderRadius: '4px'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#fff';
+                                e.currentTarget.style.transform = 'scale(1.05)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#00FF41';
+                                e.currentTarget.style.transform = 'scale(1)';
                             }}
                         >
-                            RETRY
+                            PLAY AGAIN
                         </button>
 
                         {onClose && (
                             <button
                                 onClick={onClose}
                                 style={{
-                                    padding: '8px 20px',
-                                    backgroundColor: 'red',
-                                    color: 'white',
-                                    border: 'none',
-                                    fontFamily: 'var(--font-primary)',
-                                    fontSize: '18px',
+                                    padding: '16px 40px',
+                                    backgroundColor: '#FF0000',
+                                    color: '#fff',
+                                    border: '4px solid #550000',
+                                    fontFamily: '"Press Start 2P", monospace',
+                                    fontSize: '16px',
                                     cursor: 'pointer',
-                                    fontWeight: 'bold'
+                                    textTransform: 'uppercase',
+                                    transition: 'all 0.2s',
+                                    borderRadius: '4px'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#fff';
+                                    e.currentTarget.style.color = '#FF0000';
+                                    e.currentTarget.style.transform = 'scale(1.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#FF0000';
+                                    e.currentTarget.style.color = '#fff';
+                                    e.currentTarget.style.transform = 'scale(1)';
                                 }}
                             >
                                 CLOSE
@@ -342,6 +495,18 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                     </div>
                 </div>
             )}
+
+            <style>{`
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0; }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                    100% { transform: scale(1); }
+                }
+            `}</style>
         </div>
     );
 };
