@@ -292,12 +292,12 @@ export const TerminalApp: React.FC<TerminalProps> = ({ onOpenWindow }) => {
                 setInput('');
                 return;
             } else if (cmd === 'ls') {
-                newLogs.push({ time: 'sys', type: 'info', msg: 'Available: snake, tetris, invaders, breakout, chess, notepad, paint' });
+                newLogs.push({ time: 'sys', type: 'info', msg: 'Available: snake, tetris, invaders, breakout, notepad, paint' });
             } else if (cmd.startsWith('open ')) {
                 const app = cmd.split(' ')[1];
                 const map: Record<string, string> = {
                     'snake': 'SNAKE', 'tetris': 'TETRIS', 'invaders': 'INVADERS',
-                    'breakout': 'BREAKOUT', 'chess': 'CHESS',
+                    'breakout': 'BREAKOUT',
                     'notepad': 'NOTEPAD', 'paint': 'PAINT', 'calc': 'CALC'
                 };
                 if (map[app]) {
@@ -733,7 +733,7 @@ export const ComicApp: React.FC = () => (
 // ============= HOME APP =============
 export const HomeApp: React.FC = () => {
     const scores = ScoreService.getLocalScores();
-    const games = ['invaders', 'tetris', 'snake', 'breakout', 'chess'];
+    const games = ['invaders', 'tetris', 'snake', 'breakout'];
 
     return (
         <div style={{ padding: '20px' }}>

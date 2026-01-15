@@ -86,7 +86,6 @@ function App() {
       TETRIS: { title: 'tetris.py', width: 660, height: 530 },
       BREAKOUT: { title: 'breakout.py', width: 660, height: 530 },
       INVADERS: { title: 'invaders.py', width: 660, height: 530 },
-      CHESS: { title: 'chess.py', width: 660, height: 600 },
     };
     return configs[type] || { title: `${type.toLowerCase()}.exe`, width: 320, height: 280 };
   };
@@ -177,7 +176,6 @@ function App() {
       case 'TETRIS': return <PyodideRunner scriptName="tetris" onClose={onClose} />;
       case 'BREAKOUT': return <PyodideRunner scriptName="breakout" onClose={onClose} />;
       case 'INVADERS': return <PyodideRunner scriptName="invaders" onClose={onClose} />;
-      case 'CHESS': return <PyodideRunner scriptName="chess" onClose={onClose} />;
       default: return <div style={{ padding: '20px' }}>{type.toLowerCase()}<br />[coming soon]</div>;
     }
   };
