@@ -207,7 +207,8 @@ def draw():
     # Draw UI (Score)
     # Draw UI (Score)
     ctx.fillStyle = "#FFFFFF"
-    ctx.font = "20px monospace"
+    ctx.font = '24px "LowresPixel", sans-serif'
+    ctx.textAlign = 'left'
     ctx.fillText(f"SCORE: {score}", 20, 30)
     
     global_high = 0
@@ -215,7 +216,8 @@ def draw():
     except: pass
     
     display_high = max(score, global_high)
-    ctx.fillText(f"HIGH SCORE: {display_high}", canvas.width - 250, 30)
+    ctx.textAlign = 'right'
+    ctx.fillText(f"TOP: {display_high}", canvas.width - 20, 30)
 
     # Particles
     particles.update_and_draw(ctx)
@@ -242,7 +244,7 @@ def loop(timestamp):
     except Exception as e:
         print(f"Game Loop Error: {e}")
         ctx.fillStyle = "red"
-        ctx.font = "20px monospace"
+        ctx.font = '24px "LowresPixel", monospace'
         ctx.fillText(f"Error: {e}", 50, 50)
 
 # Create Proxy for Loop

@@ -1,6 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import audioBus from '../../services/AudioBus';
 
+// Retro App Icon Button - defined OUTSIDE to prevent re-creation on Taskbar re-renders
+const AppButton: React.FC<{ icon: string; title: string; onClick: () => void; isImage?: boolean }> = ({ icon, title, onClick, isImage = false }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    const handleMouseEnter = React.useCallback(() => {
+        setIsHovered(true);
+    }, []);
+
+    const handleMouseLeave = React.useCallback(() => {
+        setIsHovered(false);
+    }, []);
+
+    return (
+        <button
+            onClick={onClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            style={{
+                width: isHovered ? 'auto' : '40px',
+                minWidth: '40px',
+                height: '40px',
+                padding: isHovered ? '0 12px' : '0',
+                marginRight: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: isHovered ? '13px' : (isImage ? '0' : '24px'),
+                backgroundColor: isHovered ? 'black' : 'var(--primary)',
+                color: isHovered ? 'var(--primary)' : 'black',
+                border: isHovered ? '2px solid var(--primary)' : 'none',
+                cursor: 'pointer',
+                imageRendering: 'pixelated',
+                overflow: 'hidden',
+                fontWeight: 'bold',
+                fontFamily: 'monospace',
+                textTransform: 'uppercase',
+                transition: 'all 0.3s ease-out',
+                whiteSpace: 'nowrap',
+                textShadow: isHovered ? '0 0 10px var(--primary), 0 0 20px var(--primary)' : 'none',
+                boxShadow: isHovered ? '0 0 15px rgba(0, 255, 0, 0.3)' : 'none',
+                willChange: 'width, background-color, color'
+            }}
+            className="retro-app-btn"
+        >
+            {isHovered ? (
+                title
+            ) : (
+                isImage ? (
+                    <img
+                        src={icon}
+                        alt={title}
+                        style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            pointerEvents: 'none'
+                        }}
+                    />
+                ) : (
+                    icon
+                )
+            )}
+        </button>
+    );
+};
+
 // Bottom taskbar with all shell OS apps from insect.christmas
 const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWindow }) => {
     const [time, setTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
@@ -12,73 +78,6 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
         }, 1000);
         return () => clearInterval(interval);
     }, []);
-
-
-    // Retro App Icon Button - supports both emoji and image with hover text transformation
-    const AppButton: React.FC<{ icon: string; title: string; onClick: () => void; isImage?: boolean }> = ({ icon, title, onClick, isImage = false }) => {
-        const [isHovered, setIsHovered] = useState(false);
-
-        const handleMouseEnter = React.useCallback(() => {
-            setIsHovered(true);
-        }, []);
-
-        const handleMouseLeave = React.useCallback(() => {
-            setIsHovered(false);
-        }, []);
-
-        return (
-            <button
-                onClick={onClick}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                style={{
-                    width: isHovered ? 'auto' : '40px',
-                    minWidth: '40px',
-                    height: '40px',
-                    padding: isHovered ? '0 12px' : '0',
-                    marginRight: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: isHovered ? '13px' : (isImage ? '0' : '24px'),
-                    backgroundColor: isHovered ? 'black' : 'var(--primary)',
-                    color: isHovered ? 'var(--primary)' : 'black',
-                    border: isHovered ? '2px solid var(--primary)' : 'none',
-                    cursor: 'pointer',
-                    imageRendering: 'pixelated',
-                    overflow: 'hidden',
-                    fontWeight: 'bold',
-                    fontFamily: 'monospace',
-                    textTransform: 'uppercase',
-                    transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                    whiteSpace: 'nowrap',
-                    textShadow: isHovered ? '0 0 10px var(--primary), 0 0 20px var(--primary)' : 'none',
-                    boxShadow: isHovered ? '0 0 15px rgba(0, 255, 0, 0.3)' : 'none',
-                    willChange: 'width, background-color, color'
-                }}
-                className="retro-app-btn"
-            >
-                {isHovered ? (
-                    title
-                ) : (
-                    isImage ? (
-                        <img
-                            src={icon}
-                            alt={title}
-                            style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover',
-                                pointerEvents: 'none'
-                            }}
-                        />
-                    ) : (
-                        icon
-                    )
-                )}
-            </button>
-        );
-    };
 
     // Music Player Control Button
     const MusicBtn: React.FC<{ label: string; onClick?: () => void }> = ({ label, onClick }) => (

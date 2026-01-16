@@ -325,11 +325,9 @@ const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClo
         </div>
     );
 
-    if (isMaximized) {
-        return createPortal(windowContent, document.body);
-    }
-
-    return windowContent;
+    // Always render via Portal to prevent unmount/remount on maximize toggle
+    // This ensures the DOM node (and iframe) identity is preserved.
+    return createPortal(windowContent, document.body);
 };
 
 export default WindowFrame;

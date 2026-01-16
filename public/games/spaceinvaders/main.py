@@ -372,13 +372,18 @@ def update_particles(): pass # Placeholder
 def draw_particles(ctx): pass # Placeholder
 def draw_hud():
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = '20px monospace'
+    ctx.font = '24px "LowresPixel", monospace'
+    ctx.textAlign = 'left'
     ctx.fillText(f"SCORE: {invaders_game.score}", 20, 30)
     
+    ctx.textAlign = 'center'
     display_high = max(invaders_game.score, int(getattr(js.window, 'GLOBAL_HIGH_SCORE', 0)))
-    ctx.fillText(f"TOP: {display_high}", 220, 30)
-    ctx.fillText(f"LIVES: {invaders_game.lives}", SCREEN_WIDTH - 120, 30)
-    ctx.fillText(f"LEVEL: {invaders_game.level}", SCREEN_WIDTH // 2 - 40, 30)
+    ctx.fillText(f"TOP: {display_high}", 300, 30)
+    
+    ctx.fillText(f"LEVEL: {invaders_game.level}", 500, 30)
+    
+    ctx.textAlign = 'right'
+    ctx.fillText(f"LIVES: {invaders_game.lives}", SCREEN_WIDTH - 20, 30)
 
 def fire_weapon():
     # Cooldown Logic

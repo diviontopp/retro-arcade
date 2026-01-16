@@ -139,8 +139,16 @@ function App() {
       id: `win-${Date.now()}`,
       type,
       title: config.title,
-      x: shouldMaximize ? 0 : 100 + (windows.length * 35) % 250,
-      y: shouldMaximize ? 0 : 60 + (windows.length * 30) % 180,
+      x: shouldMaximize ? 0 : (() => {
+        const w = typeof config.width === 'number' ? config.width : 400;
+        const sidebarW = isMobile ? 0 : 240;
+        const rightW = (showAvatar && !isMobile) ? 450 : 0;
+        // Available content width
+        const contentW = window.innerWidth - sidebarW - rightW;
+        // Center in content area
+        return sidebarW + (contentW / 2) - (w / 2);
+      })(),
+      y: shouldMaximize ? 0 : Math.max(0, (window.innerHeight / 2) - ((typeof config.height === 'number' ? config.height : 300) / 2)),
       width: shouldMaximize ? '100%' : config.width,
       height: shouldMaximize ? '100%' : config.height,
       minimized: false

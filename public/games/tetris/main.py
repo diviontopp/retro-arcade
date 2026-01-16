@@ -405,7 +405,7 @@ class Game:
         self.score = 0
         self.lines = 0
         self.level = 1
-        if not hasattr(self, 'top_score'): self.top_score = 10000 
+        if not hasattr(self, 'top_score'): self.top_score = 0 
         self.stats = {k: 0 for k in SHAPE_ORDER}
         self.board = Board(self.renderer)
         self.next_piece_type = self.randomizer.next()
@@ -592,8 +592,17 @@ class Game:
              return
 
         # Rotation
-        if input_state.check_new('w') or input_state.check_new('z') or input_state.check_new('up'):
+        if input_state.check_new('w') or input_state.check_new('up'):
             self.try_rotate(-1)
+
+        # Cheat: Change Shape
+        if input_state.check_new('z'):
+            current_idx = SHAPE_ORDER.index(self.curr_piece_type)
+            next_idx = (current_idx + 1) % len(SHAPE_ORDER)
+            self.curr_piece_type = SHAPE_ORDER[next_idx]
+            self.curr_rot = 0
+            self.curr_piece = SHAPES[self.curr_piece_type][0]
+            js.window.triggerSFX('rotate')
         
         # Hard Drop
         if input_state.check_new('space'):

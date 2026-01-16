@@ -398,13 +398,16 @@ def draw():
 
     # HUD
     ctx.fillStyle = '#FFFFFF'
-    ctx.font = '20px "Press Start 2P", sans-serif'
+    ctx.font = '24px "LowresPixel", sans-serif'
     ctx.textAlign = 'left'
     ctx.fillText(f"SCORE: {score}", 20, 28)
-    display_high = max(score, int(getattr(js.window, 'GLOBAL_HIGH_SCORE', 0)))
-    ctx.fillText(f"TOP: {display_high}", 240, 28)
+    
     ctx.textAlign = 'center'
-    ctx.fillText(f"LEVEL {level}", 400, 28)
+    display_high = max(score, int(getattr(js.window, 'GLOBAL_HIGH_SCORE', 0)))
+    ctx.fillText(f"TOP: {display_high}", 300, 28)
+    
+    ctx.fillText(f"LEVEL {level}", 500, 28)
+    
     ctx.textAlign = 'right'
     ctx.fillText(f"LIVES: {lives}", 780, 28)
     

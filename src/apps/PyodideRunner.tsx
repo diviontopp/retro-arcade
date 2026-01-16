@@ -63,6 +63,10 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
         }
     }, [globalHighScore]);
 
+    // Keep a ref for the event listener to access latest score without re-binding
+    const globalHighScoreRef = useRef(globalHighScore);
+    useEffect(() => { globalHighScoreRef.current = globalHighScore; }, [globalHighScore]);
+
     // Handle Bridge Messages from Iframe
     useEffect(() => {
         const handleMessage = (e: MessageEvent) => {
@@ -74,10 +78,10 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
 
             if (data.type === 'GAME_READY') {
                 setStatus('ready');
-                // Also send on Ready to be sure
+                // Send the LATEST score from Ref
                 iframeRef.current?.contentWindow?.postMessage({
                     type: 'GLOBAL_HIGH_SCORE',
-                    score: globalHighScore
+                    score: globalHighScoreRef.current
                 }, '*');
             }
             else if (data.type === 'GAME_ERROR') {
@@ -96,6 +100,11 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                 const user = auth.currentUser;
                 const username = user?.displayName || user?.email?.split('@')[0] || 'Guest';
                 ScoreService.saveScore(scriptName, data.score, user?.uid, username);
+
+                // Optimistically update local state if higher
+                if (data.score > globalHighScoreRef.current) {
+                    setGlobalHighScore(data.score);
+                }
             }
             else if (data.type === 'GAME_O_ACK') {
                 setIsGameOver(false);
@@ -212,6 +221,7 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                                     <div>MOVE: A D / ← →</div>
                                     <div>ROTATE: W / ↑</div>
                                     <div>DROP: S / ↓</div>
+                                    <div>CHANGE SHAPE: Z</div>
                                     <div>RESTART: ENTER</div>
                                 </>
                             )}
