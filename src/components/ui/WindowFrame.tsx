@@ -14,7 +14,7 @@ interface WindowFrameProps {
 const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClose, onMinimize, id, className }) => {
     // Determine start state based on passed style (e.g. 100% from App.tsx means maximized)
     const initialWidthStr = String(style?.width || '');
-    const initialHeightStr = String(style?.height || '');
+
     const startMaximized = initialWidthStr === '100%' || initialWidthStr === '100vw';
 
     const [isMaximized, setIsMaximized] = useState(startMaximized);

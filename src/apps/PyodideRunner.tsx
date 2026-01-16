@@ -82,7 +82,7 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
         if (!canvasRef.current) return;
 
         let isMounted = true;
-        let cleanupScript = false;
+
 
         setIsReady(false);
         setStatus('loading');
