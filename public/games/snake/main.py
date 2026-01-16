@@ -205,10 +205,17 @@ def draw():
     ctx.shadowBlur = 0
     
     # Draw UI (Score)
+    # Draw UI (Score)
     ctx.fillStyle = "#FFFFFF"
     ctx.font = "20px monospace"
     ctx.fillText(f"SCORE: {score}", 20, 30)
-    ctx.fillText(f"HIGH: {max(score, 0)}", canvas.width - 150, 30)
+    
+    global_high = 0
+    try: global_high = int(js.window.GLOBAL_HIGH_SCORE)
+    except: pass
+    
+    display_high = max(score, global_high)
+    ctx.fillText(f"HIGH SCORE: {display_high}", canvas.width - 250, 30)
 
     # Particles
     particles.update_and_draw(ctx)

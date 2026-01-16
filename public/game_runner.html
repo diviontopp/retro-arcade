@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+</head>
+
+<body>
+    <canvas id="game-canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('game-canvas');
+        const params = new URLSearchParams(window.location.search);
+        let gameName = params.get('game');
+
+        // Handle path mapping
+        let gameDir = gameName;
+        if (gameName === 'invaders') gameDir = 'spaceinvaders';
+
+        let pyodide = null;
+
+        // Shared Input State Buffer
+        window.KEY_STATE = new Int32Array(20);
+
+        const KEY_MAP = {
+            'w': 0, 'arrowup': 0,
+            's': 1, 'arrowdown': 1,
+            'a': 2, 'arrowleft': 2,
+            'd': 3, 'arrowright': 3,
+            ' ': 4,
+            'enter': 5,
+            'escape': 6,
+            'z': 7, 'x': 8, 'c': 9
+        };
+
+        function updateKeyState(key, isPressed) {
+            const k = key.toLowerCase();
+            if (KEY_MAP[k] !== undefined) {
+                const idx = KEY_MAP[k];
+                window.KEY_STATE[idx] = isPressed ? 2 : 0;
+            }
+        }
+
+        // Swipe / Touch Logic (Ported from MobileControls)
+        let touchStart = null;
+        let touchEnd = null;
+        let keyTimeouts = {};
+
+        function triggerKeyIndex(idx, turbo) {
+            if (window.KEY_STATE[idx] === 2 && turbo) return; // Debounce if needed? No, standard logic.
+
+            // Clear existing release timeout
+            if (keyTimeouts[idx]) clearTimeout(keyTimeouts[idx]);
+
+            window.KEY_STATE[idx] = 2; // Press
+
+            const duration = turbo ? 50 : 100;
+            keyTimeouts[idx] = setTimeout(() => {
+                window.KEY_STATE[idx] = 0; // Release
+                delete keyTimeouts[idx];
+            }, duration);
+        }
+
+        const isTurbo = (gameName === 'breakout' || gameName === 'invaders');
+        const minSwipeDist = isTurbo ? 5 : 20;
+
+        document.addEventListener('touchstart', (e) => {
+            touchEnd = null;
+            touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!touchStart) return;
+            if (e.cancelable) e.preventDefault();
+
+            touchEnd = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+
+            // Turbo continuous
+            if (isTurbo && touchEnd) {
+                const xDiff = touchStart.x - touchEnd.x;
+                if (Math.abs(xDiff) > 2) {
+                    if (xDiff > 0) triggerKeyIndex(2, true); // Left
+                    else triggerKeyIndex(3, true); // Right
+                    touchStart = touchEnd; // Reset origin
+                }
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchend', (e) => {
+            if (!touchStart) return;
+
+            // Tap Detection
+            if (!touchEnd) {
+                const tapX = e.changedTouches[0].clientX;
+                const tapY = e.changedTouches[0].clientY;
+                if (Math.abs(tapX - touchStart.x) < 10 && Math.abs(tapY - touchStart.y) < 10) {
+                    // Tap = Space (Action) OR Click for Chess
+                    if (gameName === 'chess') {
+                        // Let click bubble, don't trigger Space
+                    } else {
+                        triggerKeyIndex(4, false); // Space
+                    }
+                }
+                touchStart = null;
+                return;
+            }
+
+            if (isTurbo) {
+                touchStart = null; touchEnd = null; return;
+            }
+
+            const xDiff = touchStart.x - touchEnd.x;
+            const yDiff = touchStart.y - touchEnd.y;
+
+            if (Math.abs(xDiff) > Math.abs(yDiff)) {
+                if (Math.abs(xDiff) > minSwipeDist) {
+                    if (xDiff > 0) triggerKeyIndex(2); // Left
+                    else triggerKeyIndex(3); // Right
+                }
+            } else {
+                if (Math.abs(yDiff) > minSwipeDist) {
+                    if (yDiff > 0) triggerKeyIndex(0); // Up
+                    else triggerKeyIndex(1); // Down
+                }
+            }
+            touchStart = null; touchEnd = null;
+        });
+
+
+        // Parent Window Bridge
+        window.addEventListener('message', (e) => {
+            const data = e.data;
+            if (data.type === 'RESTART_GAME') {
+                if (pyodide) {
+                    try {
+                        pyodide.runPython(`
+                        try:
+                            if 'reset_game' in globals():
+                                reset_game()
+                        except:
+                            pass
+                        `);
+                        window.parent.postMessage({ type: 'GAME_O_ACK' }, '*');
+                    } catch (e) {
+                        window.location.reload();
+                    }
+                }
+            }
+            if (data.type === 'START_GAME') {
+                // Nothing specific needed if we run immediately, 
+                // but we could gate logic here.
+            }
+            if (data.type === 'GLOBAL_HIGH_SCORE') {
+                window.GLOBAL_HIGH_SCORE = data.score;
+                // Also expose it to Pyodide globals directly if possible
+                if (pyodide) {
+                    try {
+                        pyodide.globals.set("GLOBAL_HIGH_SCORE", data.score);
+                    } catch (err) { }
+                }
+            }
+        });
+
+        // Local Keyboard
+        window.addEventListener('keydown', e => updateKeyState(e.key, true));
+        window.addEventListener('keyup', e => updateKeyState(e.key, false));
+        window.addEventListener('click', () => window.focus());
+
+        // Global Bridges
+        window.setGameOver = (state, score) => {
+            window.parent.postMessage({ type: 'GAME_OVER', state, score }, '*');
+        };
+        window.submitScore = (score) => {
+            window.parent.postMessage({ type: 'SUBMIT_SCORE', score, game: gameName }, '*');
+        };
+        window.triggerSFX = (sfxType) => {
+            window.parent.postMessage({ type: 'SFX', sfxType }, '*');
+        };
+
+        async function init() {
+            try {
+                canvas.id = `game-canvas-${gameName}`;
+
+                pyodide = await loadPyodide();
+
+                try {
+                    const utilsRes = await fetch('/games/_common/game_utils.py');
+                    if (utilsRes.ok) {
+                        const utilsCode = await utilsRes.text();
+                        pyodide.FS.writeFile("game_utils.py", utilsCode, { encoding: "utf8" });
+                    }
+                } catch (e) { }
+
+                const gameRes = await fetch(`/games/${gameDir}/main.py`);
+                if (!gameRes.ok) throw new Error(`Game script not found: ${gameDir}`);
+                const gameCode = await gameRes.text();
+
+                await pyodide.runPythonAsync(`
+import js
+class FastInput:
+    def __init__(self):
+        self.state = js.window.KEY_STATE
+        self.last_pressed = {}
+    def check(self, key_code):
+        if not self.state: return False
+        return self.state[key_code] > 0
+    def check_new(self, key_code):
+        if not self.state: return False
+        is_pressed = self.state[key_code] > 0
+        was_pressed = self.last_pressed.get(key_code, False)
+        self.last_pressed[key_code] = is_pressed
+        return is_pressed and not was_pressed
+fast_input = FastInput()
+                `);
+
+                pyodide.runPython(gameCode);
+                window.parent.postMessage({ type: 'GAME_READY' }, '*');
+
+            } catch (e) {
+                console.error(e);
+                window.parent.postMessage({ type: 'GAME_ERROR', message: e.message }, '*');
+            }
+        }
+
+        init();
+        window.onload = () => window.focus();
+    </script>
+</body>
+
+</html>

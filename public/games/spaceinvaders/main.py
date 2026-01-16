@@ -309,7 +309,7 @@ class Game:
                        p.y < e.y + e.height and p.y + p.height > e.y:
                         e.active = False
                         p.active = False
-                        self.score += 100
+                        self.score += 50
                         invaders_game.weapon_level = min(2, self.score // 1000)
                         try: js.window.triggerSFX('enemy_hit')
                         except: pass
@@ -374,6 +374,9 @@ def draw_hud():
     ctx.fillStyle = '#FFFFFF'
     ctx.font = '20px monospace'
     ctx.fillText(f"SCORE: {invaders_game.score}", 20, 30)
+    
+    display_high = max(invaders_game.score, int(getattr(js.window, 'GLOBAL_HIGH_SCORE', 0)))
+    ctx.fillText(f"TOP: {display_high}", 220, 30)
     ctx.fillText(f"LIVES: {invaders_game.lives}", SCREEN_WIDTH - 120, 30)
     ctx.fillText(f"LEVEL: {invaders_game.level}", SCREEN_WIDTH // 2 - 40, 30)
 

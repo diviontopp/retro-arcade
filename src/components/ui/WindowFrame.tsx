@@ -7,11 +7,12 @@ interface WindowFrameProps {
     style?: React.CSSProperties;
     onClose: () => void;
     onMinimize?: () => void;
+    onFocus?: () => void;
     id: string;
     className?: string;
 }
 
-const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClose, onMinimize, id, className }) => {
+const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClose, onMinimize, onFocus, id, className }) => {
     // Determine start state based on passed style (e.g. 100% from App.tsx means maximized)
     const initialWidthStr = String(style?.width || '');
 
@@ -63,6 +64,7 @@ const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClo
 
     // Handle dragging
     const handleMouseDown = (e: React.MouseEvent) => {
+        onFocus?.();
         if ((e.target as HTMLElement).closest('.window-header') && !isMaximized) {
             setIsDragging(true);
             setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
@@ -70,6 +72,7 @@ const WindowFrame: React.FC<WindowFrameProps> = ({ title, children, style, onClo
     };
 
     const handleTouchStart = (e: React.TouchEvent) => {
+        onFocus?.();
         if ((e.target as HTMLElement).closest('.window-header') && !isMaximized) {
             const touch = e.touches[0];
             setIsDragging(true);

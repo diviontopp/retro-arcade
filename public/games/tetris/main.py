@@ -669,7 +669,8 @@ class Game:
         self.renderer.draw_text_centered(f"LINES-{self.lines:03}", LINES_X + LINES_W//2, LINES_Y + 16, 2)
         
         self.renderer.draw_text("TOP", SCORE_X + 16, SCORE_Y + 12, 2)
-        self.renderer.draw_text(f"{self.top_score:06}", SCORE_X + 16, SCORE_Y + 32, 2)
+        top_val = max(self.top_score, self.score, int(getattr(js.window, 'GLOBAL_HIGH_SCORE', 0)))
+        self.renderer.draw_text(f"{top_val:06}", SCORE_X + 16, SCORE_Y + 32, 2)
         self.renderer.draw_text("SCORE", SCORE_X + 16, SCORE_Y + 56, 2)
         self.renderer.draw_text(f"{self.score:06}", SCORE_X + 16, SCORE_Y + 76, 2)
         

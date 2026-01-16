@@ -156,6 +156,17 @@ function App() {
     setWindows(windows.map(w => w.id === id ? { ...w, minimized: true } : w));
   };
 
+  const bringToFront = (id: string) => {
+    setWindows(prev => {
+      const index = prev.findIndex(w => w.id === id);
+      if (index === -1) return prev;
+      if (index === prev.length - 1) return prev; // Already on top
+      const win = prev[index];
+      // Move to end of array to increase z-index (DOM order)
+      return [...prev.slice(0, index), ...prev.slice(index + 1), win];
+    });
+  };
+
   const renderAppContent = (type: string, onClose: () => void) => {
     switch (type) {
       case 'CALC': return <CalcApp />;
@@ -320,6 +331,7 @@ function App() {
                 }}
                 onClose={() => closeWindow(win.id)}
                 onMinimize={() => minimizeWindow(win.id)}
+                onFocus={() => bringToFront(win.id)}
               >
                 {renderAppContent(win.type, () => closeWindow(win.id))}
               </WindowFrame>
