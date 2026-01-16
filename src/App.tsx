@@ -14,22 +14,14 @@ import {
   ComicApp, HomeApp, GalleryApp
 } from './apps/ShellApps';
 import audioBus from './services/AudioBus';
-import { initMobileControls, removeMobileControls } from './services/MobileControls';
 
 import { usePyodide } from './hooks/usePyodide';
 import { LoginApp } from './apps/LoginApp';
 
-// ... (other imports remain, but remove gameUtils import if handled by hook OR pass it to hook)
-// Actually the hook I wrote handles the *loading* but not the *utils writing* yet.
-// I should update the hook to write utils or keep that part here.
-// The hook I wrote *just* loads.
-
-// Let's stick to the plan: Simplify App.tsx. I will move the global loader OUT of App.tsx but keep the effect simple.
-
 function App() {
   const [isBooting, setIsBooting] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 1024);
 
   // Use the hook
   usePyodide();
@@ -40,27 +32,20 @@ function App() {
     }
   }, []);
 
-  // Initialize mobile swipe controls
-  useEffect(() => {
-    if (isMobile) {
-      initMobileControls();
-    }
-    return () => removeMobileControls();
-  }, [isMobile]);
-
   // Listen for window resize to toggle mobile mode
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
+      setIsMobile(window.innerWidth <= 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number; height?: number }[]>([]);
+  const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number | string; height?: number | string; minimized?: boolean }[]>([]);
   const [showParticles, setShowParticles] = useState(false);
   const [showAvatar, setShowAvatar] = useState(true);
   const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS' | 'SCORES'>('ABOUT');
+
   const getWindowConfig = (type: string) => {
     const configs: Record<string, { title: string; width: number; height: number }> = {
       CALC: { title: 'calc.exe', width: 280, height: 400 },
@@ -135,23 +120,40 @@ function App() {
     }
 
     // Check if window already exists
-    if (windows.find(w => w.type === type)) return;
+    const existing = windows.find(w => w.type === type);
+    if (existing) {
+      // If minimized, restore it
+      if (existing.minimized) {
+        setWindows(windows.map(w => w.id === existing.id ? { ...w, minimized: false } : w));
+      }
+      return;
+    }
 
     const config = getWindowConfig(type);
+    const isGame = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'CHESS'].includes(type);
+
+    // Auto-maximize games on tablet/mobile interaction (basically if not a huge desktop)
+    const shouldMaximize = isGame && window.innerWidth < 1200;
+
     const newWindow = {
       id: `win-${Date.now()}`,
       type,
       title: config.title,
-      x: 100 + (windows.length * 35) % 250,
-      y: 60 + (windows.length * 30) % 180,
-      width: config.width,
-      height: config.height
+      x: shouldMaximize ? 0 : 100 + (windows.length * 35) % 250,
+      y: shouldMaximize ? 0 : 60 + (windows.length * 30) % 180,
+      width: shouldMaximize ? '100%' : config.width,
+      height: shouldMaximize ? '100%' : config.height,
+      minimized: false
     };
     setWindows([...windows, newWindow]);
   };
 
   const closeWindow = (id: string) => {
     setWindows(windows.filter(w => w.id !== id));
+  };
+
+  const minimizeWindow = (id: string) => {
+    setWindows(windows.map(w => w.id === id ? { ...w, minimized: true } : w));
   };
 
   const renderAppContent = (type: string, onClose: () => void) => {
@@ -192,6 +194,9 @@ function App() {
     }} />;
   }
 
+  // Check if any game is currently open AND VISIBLE (not minimized)
+  const isAnyGameOpen = windows.some(w => ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'CHESS'].includes(w.type) && !w.minimized);
+
   return (
     <>
       <Scanline />
@@ -208,6 +213,7 @@ function App() {
         zIndex: 1
       } : {
         display: 'grid',
+        // Keep right panel visible even if game is playing
         gridTemplateColumns: showAvatar ? '240px 1fr 450px' : '240px 1fr 0px',
         gridTemplateRows: '1fr 60px',
         width: '100vw',
@@ -251,7 +257,8 @@ function App() {
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
-            zIndex: 1
+            zIndex: 1,
+            gridColumn: '1 / 2' // Explicitly place in first column
           }}>
             <div style={{ position: 'relative', height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Sidebar onOpenGame={openWindow} />
@@ -259,8 +266,8 @@ function App() {
           </div>
         )}
 
-        {/* Mobile Sidebar - horizontal scrollable */}
-        {isMobile && (
+        {/* Mobile Sidebar - horizontal scrollable - HIDDEN IF GAME IS OPEN */}
+        {isMobile && !isAnyGameOpen && (
           <div style={{
             backgroundColor: 'rgba(0,0,0,0.95)',
             borderBottom: '3px solid var(--primary)',
@@ -280,14 +287,20 @@ function App() {
 
         <main className="main-content-mobile" style={{
           position: 'relative',
-          overflow: isMobile ? 'auto' : 'hidden',
+          overflow: 'hidden',
           padding: '0',
-          backgroundColor: isMobile ? 'rgba(0,0,0,0.9)' : 'transparent',
+          background: isMobile ? 'rgba(0,0,0,0.9)' : 'transparent',
           zIndex: 1,
           flex: isMobile ? 1 : undefined,
-          minHeight: isMobile ? 'calc(100vh - 130px)' : undefined
+          gridColumn: isMobile ? undefined : '2 / 3', // Explicitly place in middle column
+          touchAction: 'none'
         }}>
-          <div style={{ position: 'relative', height: '100%', minHeight: isMobile ? 'calc(100vh - 130px)' : undefined }}>
+          <div style={{
+            position: 'relative',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             {/* Dark overlay for readability if needed, or just content */}
             <ContentWindow mode={mainContentMode} />
 
@@ -301,10 +314,12 @@ function App() {
                 style={{
                   left: win.x,
                   top: win.y,
-                  width: `${win.width}px`,
-                  height: `${win.height}px`
+                  width: typeof win.width === 'number' ? `${win.width}px` : win.width,
+                  height: typeof win.height === 'number' ? `${win.height}px` : win.height,
+                  display: win.minimized ? 'none' : 'flex'
                 }}
                 onClose={() => closeWindow(win.id)}
+                onMinimize={() => minimizeWindow(win.id)}
               >
                 {renderAppContent(win.type, () => closeWindow(win.id))}
               </WindowFrame>
@@ -312,39 +327,41 @@ function App() {
           </div>
         </main>
 
-        {/* Right Avatar Panel - hidden on mobile */}
+        {/* Right Avatar Panel - hidden on mobile only */}
         {showAvatar && !isMobile && (
           <div className="avatar-panel-container" style={{
             position: 'relative',
             transition: 'background-color 0.3s',
-            backgroundColor: 'transparent',
             zIndex: 1,
             // Green borders on left and right
             borderLeft: '4px solid var(--primary)',
-            borderRight: '4px solid var(--primary)'
+            borderRight: '4px solid var(--primary)',
+            gridColumn: '3 / 4' // Explicitly place in third column
           }}>
             <AvatarPanel />
             <ChatBox />
           </div>
         )}
 
-        {/* Bottom Taskbar */}
-        <div className="mobile-taskbar" style={isMobile ? {
-          position: 'relative',
-          width: '100%',
-          minHeight: '60px',
-          zIndex: 10,
-          flexShrink: 0
-        } : {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          width: '100%',
-          height: '60px',
-          zIndex: 10
-        }}>
-          <Taskbar onOpenWindow={openWindow} />
-        </div>
+        {/* Bottom Taskbar - HIDDEN ON MOBILE IF GAME IS OPEN */}
+        {(!isMobile || !isAnyGameOpen) && (
+          <div className="mobile-taskbar" style={isMobile ? {
+            position: 'relative',
+            width: '100%',
+            minHeight: '60px',
+            zIndex: 10,
+            flexShrink: 0
+          } : {
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '100%',
+            height: '60px',
+            zIndex: 10
+          }}>
+            <Taskbar onOpenWindow={openWindow} />
+          </div>
+        )}
       </div>
     </>
   );

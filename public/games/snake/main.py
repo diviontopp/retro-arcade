@@ -101,7 +101,7 @@ def update():
         try: js.window.triggerSFX('crash')
         except: pass
         try: 
-            js.window.setGameOver(True)
+            js.window.setGameOver(True, score)
             if not score_submitted:
                 js.window.submitScore(score)
                 score_submitted = True
@@ -143,6 +143,10 @@ def draw():
         ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x, canvas.height); ctx.stroke()
     for y in range(0, canvas.height, GRID_SIZE):
         ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width, y); ctx.stroke()
+    
+    # Draw Border
+    ctx.strokeStyle = '#333333'
+    ctx.strokeRect(0, 0, canvas.width, canvas.height)
 
     # Draw Food
     ctx.fillStyle = '#FF3333'
@@ -218,15 +222,21 @@ req_id = None
 def loop(timestamp):
     global last_time, req_id
     
-    # Poll Input Every Frame (for lowest latency)
-    check_input()
-    
-    if timestamp - last_time > delay: # Use dynamic delay
-        update()
-        last_time = timestamp
-    
-    draw() 
-    req_id = js.window.requestAnimationFrame(proxy_loop)
+    try:
+        # Poll Input Every Frame (for lowest latency)
+        check_input()
+        
+        if timestamp - last_time > delay: # Use dynamic delay
+            update()
+            last_time = timestamp
+        
+        draw() 
+        req_id = js.window.requestAnimationFrame(proxy_loop)
+    except Exception as e:
+        print(f"Game Loop Error: {e}")
+        ctx.fillStyle = "red"
+        ctx.font = "20px monospace"
+        ctx.fillText(f"Error: {e}", 50, 50)
 
 # Create Proxy for Loop
 proxy_loop = create_proxy(loop)

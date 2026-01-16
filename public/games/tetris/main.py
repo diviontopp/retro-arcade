@@ -442,7 +442,7 @@ class Game:
         if self.board.is_collision(self.curr_piece, self.curr_x, self.curr_y):
             self.state = "GAMEOVER"
             js.window.triggerSFX('game_over')
-            js.window.setGameOver(True)
+            js.window.setGameOver(True, self.score)
             try:
                 if not getattr(self, 'score_submitted', False):
                     js.window.submitScore(self.score)

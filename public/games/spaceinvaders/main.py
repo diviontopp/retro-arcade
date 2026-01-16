@@ -327,7 +327,7 @@ class Game:
                      except: pass
                      if invaders_game.lives <= 0:
                          invaders_game.state = GameStateEnum.GAME_OVER
-                         try: js.window.setGameOver(True)
+                         try: js.window.setGameOver(True, invaders_game.score)
                          except: pass
                          if not getattr(invaders_game, 'score_submitted', False):
                              try: js.window.submitScore(invaders_game.score)
@@ -349,16 +349,23 @@ class Game:
 # Globals
 invaders_game = Game()
 # Input
-keys = {}
+# keys = {} # Removed in favor of fast_input
 input_cooldown = 0
 
-def on_key_down(e): keys[e.key.lower()] = True
-def on_key_up(e): keys[e.key.lower()] = False
+# KEY MAPPING for fast_input (Matches PyodideRunner.tsx)
+KEY_LEFT = 2
+KEY_RIGHT = 3
+KEY_SPACE = 4
 
-down_proxy = create_proxy(on_key_down)
-up_proxy = create_proxy(on_key_up)
-js.document.addEventListener('keydown', down_proxy)
-js.document.addEventListener('keyup', up_proxy)
+# remove listeners if they exist (cleanup for hot reload)
+try:
+    js.document.removeEventListener('keydown', down_proxy)
+    js.document.removeEventListener('keyup', up_proxy)
+    js.document.removeEventListener('keyup', up_proxy)
+except: pass
+
+def reset_game():
+    invaders_game.reset()
 
 # Utils
 def update_particles(): pass # Placeholder
@@ -419,13 +426,17 @@ def loop(timestamp):
     global input_cooldown
     if input_cooldown > 0: input_cooldown -= 1
     
-    if keys.get('arrowleft') or keys.get('a'): invaders_game.playerX -= PLAYER_SPEED
-    if keys.get('arrowright') or keys.get('d'): invaders_game.playerX += PLAYER_SPEED
-    invaders_game.playerX = max(0, min(invaders_game.playerX, SCREEN_WIDTH - PLAYER_WIDTH))
-    
-    if (keys.get(' ') or keys.get('space')) and input_cooldown == 0:
-        fire_weapon()
-        input_cooldown = 20
+    # Use fast_input global injected by PyodideRunner
+    try:
+        if fast_input.check(KEY_LEFT): invaders_game.playerX -= PLAYER_SPEED
+        if fast_input.check(KEY_RIGHT): invaders_game.playerX += PLAYER_SPEED
+        invaders_game.playerX = max(0, min(invaders_game.playerX, SCREEN_WIDTH - PLAYER_WIDTH))
+        
+        if fast_input.check(KEY_SPACE) and input_cooldown == 0:
+            fire_weapon()
+            input_cooldown = 20
+    except:
+        pass # Fallback if fast_input not ready
         
     invaders_game.update()
     
@@ -461,9 +472,6 @@ def cleanup():
         js.window.cancelAnimationFrame(js.window.invaders_req_id)
     try: js.window.cancelAnimationFrame(req_id)
     except: pass
-    try: js.document.removeEventListener('keydown', down_proxy)
-    except: pass
-    try: js.document.removeEventListener('keyup', up_proxy)
-    except: pass
+    # No more event listeners to remove
     try: proxy_loop.destroy()
     except: pass

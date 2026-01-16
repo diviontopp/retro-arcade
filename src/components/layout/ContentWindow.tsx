@@ -14,6 +14,14 @@ const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTO
         else content = <DefaultContent />;
     }
 
+    const [isMobile, setIsMobile] = React.useState(window.innerWidth <= 1024);
+
+    React.useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     let title = 'cyber.arcade/';
     if (mode === 'TECH_STACK') title = 'tech_stack.info';
     else if (mode === 'MUSIC') title = 'audio_player.exe';
@@ -28,7 +36,7 @@ const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTO
             display: 'flex',
             flexDirection: 'column',
             height: '100%',
-            overflow: 'hidden'
+            overflow: 'hidden',
         }}>
             {/* Window header */}
             <div style={{
@@ -54,7 +62,9 @@ const ContentWindow: React.FC<{ mode?: 'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTO
             {/* Content */}
             <div style={{
                 flex: 1,
-                overflow: 'auto',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                WebkitOverflowScrolling: 'touch',
                 padding: '15px'
             }}>
                 {content}
