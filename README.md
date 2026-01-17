@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0
 **Status**: Stable / Production
-**Author**: Antigravity
+**Author**: Diviontopp
 **License**: MIT
 
 ![Desktop Environment](desktop.png)
@@ -393,7 +393,7 @@ A crucial part of the aesthetic.
 
 ## 12. Credits
 
-*   **Lead Engineer**: Antigravity
+*   **Lead Engineer**: Diviontopp
 *   **Frameworks**: React, Vite, Pyodide
 *   **Assets**:
     *   Icons: RemixIcon / FontAwesome
