@@ -33,7 +33,7 @@ class Paddle:
         self.height = 28
         self.x = (800 - self.width) // 2
         self.y = 550
-        self.speed = 9
+        self.speed = 5
 
     def move_left(self):
         self.x = max(0, self.x - self.speed)
