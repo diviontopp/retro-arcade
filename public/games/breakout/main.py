@@ -33,7 +33,7 @@ class Paddle:
         self.height = 28
         self.x = (800 - self.width) // 2
         self.y = 550
-        self.speed = 2
+        self.speed = 9
 
     def move_left(self):
         self.x = max(0, self.x - self.speed)
@@ -197,6 +197,7 @@ game_over = False
 game_running = True
 level_complete = False
 level_complete_timer = 0
+score_submitted = False
 
 # Level Patterns
 LEVEL_PATTERNS = [
