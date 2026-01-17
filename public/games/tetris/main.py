@@ -596,9 +596,9 @@ class Game:
         if input_state.check_new('w') or input_state.check_new('up'):
             self.try_rotate(1)
 
-        # Z = Counter-Clockwise
+        # Z = Clockwise (User requested "rotates all 4 sides")
         if input_state.check_new('z'):
-            self.try_rotate(-1)
+            self.try_rotate(1)
         
         # Hard Drop
         if input_state.check_new('space'):
