@@ -27,7 +27,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-printable_code.txt
-
-scripts/generate_printable_code.py
