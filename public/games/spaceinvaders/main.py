@@ -12,9 +12,9 @@ PLAYER_WIDTH = 64
 PLAYER_HEIGHT = 64
 ENEMY_WIDTH = 48
 ENEMY_HEIGHT = 48
-PLAYER_SPEED = 3
-BOSS_WIDTH = 128
-BOSS_HEIGHT = 64
+PLAYER_SPEED = 6
+BOSS_WIDTH = 256
+BOSS_HEIGHT = 128
 
 canvas = js.document.getElementById('game-canvas-invaders')
 canvas.width = SCREEN_WIDTH
@@ -281,11 +281,24 @@ class Boss:
         self.active = True
         self.attack_timer = 0
         
+        self.state = 'HORIZONTAL' # 'HORIZONTAL' or 'VERTICAL'
+        self.vertical_target = 0
+        
     def update(self):
-        self.x += self.direction * 2
-        if self.x > SCREEN_WIDTH - self.width - 20 or self.x < 20:
-             self.direction *= -1
         self.attack_timer += 1
+        
+        if self.state == 'HORIZONTAL':
+            self.x += self.direction * 3 # Faster
+            if self.x > SCREEN_WIDTH - self.width - 20 or self.x < 20:
+                self.state = 'VERTICAL'
+                self.vertical_target = min(self.y + 40, 350) # Cap low point
+                self.direction *= -1
+                
+        elif self.state == 'VERTICAL':
+            self.y += 2
+            if self.y >= self.vertical_target:
+                self.y = self.vertical_target
+                self.state = 'HORIZONTAL'
         
     def draw(self, ctx):
         if not self.active: return
@@ -319,8 +332,7 @@ class Shield:
         
         # Use generated image if available, else fallback
         img = get_clean_sprite('shield', shield_img)
-        # Use generated image if available, else fallback
-        img = get_clean_sprite('shield', shield_img)
+
         
         if img:
              # Draw full opacity first time, then fade
@@ -377,7 +389,8 @@ class Game:
         self.enemies = [] 
         
         if self.level == 5:
-            self.boss = Boss(SCREEN_WIDTH//2 - BOSS_WIDTH//2, 50)
+            # Boss is bigger (256x128) and comes forward (y=90)
+            self.boss = Boss(SCREEN_WIDTH//2 - BOSS_WIDTH//2, 90)
             try: js.window.triggerSFX('start')
             except: pass
             return
@@ -416,7 +429,7 @@ class Game:
                 
                 # Special Behaviors
                 if sprite_key == 'crab_blue':
-                    if random.random() < 0.3: e.behavior = 'diver' 
+                    if self.level >= 2 and random.random() < 0.3: e.behavior = 'diver' 
                 elif sprite_key == 'octopus_red':
                     e.behavior = 'shooter_spread' 
                 elif sprite_key == 'octopus_green':
@@ -431,7 +444,8 @@ class Game:
                  divers[i].behavior = 'normal'
 
     def spawn_shields(self):
-        self.shields = [Shield(SCREEN_WIDTH // 2 - 40, 350)]
+        # Center the shield: ScreenCenter (400) - HalfShieldWidth (50) = 350
+        self.shields = [Shield(SCREEN_WIDTH // 2 - 50, 350)]
 
     def update(self):
         for s in self.stars: s.update()

@@ -81,7 +81,8 @@ X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 X X X X X X X X X X X X X X X X X X X X X X X X X X X X
 """
 
-WALKABLE = ['.', 'P', 'p', 'n', '+', ' ', '-']
+WALKABLE_PACMAN = ['.', 'P', 'p', 'n', '+', ' '] # Removed '-' (Ghost House Gate)
+WALKABLE_GHOST = ['.', 'P', 'p', 'n', '+', ' ', '-']
 
 # =============================================================================
 # INPUT
@@ -98,7 +99,7 @@ input_state = InputWrapper()
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
-def can_move_from(maze_rows, x, y, direction):
+def can_move_from(maze_rows, x, y, direction, is_ghost=False):
     """Check if movement is possible from given position in given direction."""
     gx = int((x + 8) // 16)
     gy = int((y + 8) // 16)
@@ -111,13 +112,22 @@ def can_move_from(maze_rows, x, y, direction):
     
     tgx, tgy = gx + dx, gy + dy
     
-    # Tunnel wrap check
+    # Tunnel wrap check (Strict - Only Row 17)
     if tgx < 0 or tgx >= COLS:
-        return True  # Allow tunnel wrap
+        if gy == 17: return True
+        return False
+        
     if tgy < 0 or tgy >= ROWS:
         return False
     if tgy >= len(maze_rows) or tgx >= len(maze_rows[tgy]):
         return False
+        
+    cell = maze_rows[tgy][tgx]
+    
+    if is_ghost:
+        return cell in WALKABLE_GHOST
+    else:
+        return cell in WALKABLE_PACMAN
     
     return maze_rows[tgy][tgx] in WALKABLE
 
@@ -254,13 +264,14 @@ class Game:
                     self.state = 'GAMEOVER'
                     try: js.window.setGameOver(True, self.score)
                     except: pass
-                    js.window.submitScore(self.score)
+                    try: js.window.submitScore(self.score)
+                    except: pass
                 else:
                     self.reset_positions()
                     self.state = 'READY'
                     self.state_timer = 0
 
-    def can_move_grid(self, gx, gy, direction):
+    def can_move_grid(self, gx, gy, direction, is_ghost=False):
         """Check if movement is possible from grid coordinates."""
         dx, dy = 0, 0
         if direction == DIR_UP: dy = -1
@@ -270,15 +281,20 @@ class Game:
         
         tx, ty = gx + dx, gy + dy
         
-        # Tunnel wrap
-        if tx < 0 or tx >= COLS: return True
+        # Tunnel wrap (Strict - Row 17)
+        if tx < 0 or tx >= COLS:
+            if gy == 17: return True
+            return False
+            
         if ty < 0 or ty >= ROWS: return False
         
         # Check bounds
         if ty >= len(self.maze_rows) or tx >= len(self.maze_rows[ty]):
             return False
             
-        return self.maze_rows[ty][tx] in WALKABLE
+        cell = self.maze_rows[ty][tx]
+        if is_ghost: return cell in WALKABLE_GHOST
+        return cell in WALKABLE_PACMAN
 
     def draw(self):
         # Background
@@ -318,35 +334,36 @@ class Game:
 
     def _draw_hud(self):
         ctx.fillStyle = WHITE
-        ctx.font = '16px monospace'
+        ctx.font = '12px "Press Start 2P", monospace'
         ctx.textBaseline = 'top'
         
-        # Top row
+        # Top row (spaced out)
         ctx.textAlign = 'left'
-        ctx.fillText(f"SCORE: {self.score}", 10, 8)
+        ctx.fillText(f"SCORE: {self.score}", 8, 6)
         
-        ctx.textAlign = 'center'
+        ctx.textAlign = 'right'
         high = 0
         try: high = js.window.gameHighScore or 0
         except: pass
-        ctx.fillText(f"TOP: {high}", WIDTH/2, 8)
+        ctx.fillText(f"TOP: {high}", WIDTH - 8, 6)
         
-        ctx.textAlign = 'right'
-        ctx.fillText(f"LVL: {self.level}", WIDTH - 10, 8)
+        # Level in center
+        ctx.textAlign = 'center'
+        ctx.fillText(f"LVL {self.level}", WIDTH/2, 6)
         
-        # Bottom row - Lives
+        # Bottom row - Lives (Text + Icons)
         ctx.textAlign = 'left'
         ctx.textBaseline = 'middle'
-        lives_y = HEIGHT - 12
+        lives_y = HEIGHT - 16
         ctx.fillText("LIVES:", 10, lives_y)
         
         for i in range(max(0, self.lives)):
             ctx.fillStyle = YELLOW
             ctx.beginPath()
-            lx = 80 + i * 18
+            lx = 85 + i * 24
             ly = lives_y
-            ctx.arc(lx + 6, ly, 5, 0.25 * math.pi, 1.75 * math.pi)
-            ctx.lineTo(lx + 6, ly)
+            ctx.arc(lx + 8, ly, 8, 0.25 * math.pi, 1.75 * math.pi)
+            ctx.lineTo(lx + 8, ly)
             ctx.fill()
         
         # State overlays
@@ -367,7 +384,7 @@ class Game:
             ctx.fillText("OUCH!", WIDTH/2, HEIGHT/2)
         elif self.state == 'GAMEOVER':
             ctx.fillStyle = RED
-            ctx.font = '24px monospace'
+            ctx.font = '24px "Press Start 2P", monospace'
             ctx.fillText("GAME OVER", WIDTH/2, HEIGHT/2)
 
 
@@ -426,10 +443,19 @@ class Pacman(Entity):
 
     def update(self):
         # Input
-        if input_state.check('up'): self.next_dir = DIR_UP
-        elif input_state.check('down'): self.next_dir = DIR_DOWN
-        elif input_state.check('left'): self.next_dir = DIR_LEFT
-        elif input_state.check('right'): self.next_dir = DIR_RIGHT
+        # Smart Input Priority (Orthogonal Turns)
+        u, d, l, r = input_state.check('up'), input_state.check('down'), input_state.check('left'), input_state.check('right')
+        
+        if self.dir in [DIR_LEFT, DIR_RIGHT]:
+            if u: self.next_dir = DIR_UP
+            elif d: self.next_dir = DIR_DOWN
+            elif l: self.next_dir = DIR_LEFT
+            elif r: self.next_dir = DIR_RIGHT
+        else:
+            if l: self.next_dir = DIR_LEFT
+            elif r: self.next_dir = DIR_RIGHT
+            elif u: self.next_dir = DIR_UP
+            elif d: self.next_dir = DIR_DOWN
         
         gx, gy = self.get_grid_pos()
         center_x = gx * 16
@@ -594,13 +620,7 @@ class Ghost(Entity):
             self.x = -8
             self.gx = -1
 
-        # 3. TUNNEL WRAP
-        if self.x < -8: 
-            self.x = WIDTH
-            self.gx = COLS
-        elif self.x > WIDTH: 
-            self.x = -8
-            self.gx = -1
+
 
     def _choose_direction(self):
         # Available Exits
@@ -610,14 +630,14 @@ class Ghost(Entity):
             if d == OPPOSITE.get(self.dir):
                 continue
             # Check maze wall at (gx + dx, gy + dy)
-            if self.game.can_move_grid(self.gx, self.gy, d):
+            if self.game.can_move_grid(self.gx, self.gy, d, is_ghost=True):
                 exits.append(d)
                 
         # Handle Dead End (only reverse available)
         if not exits:
             # Check if reverse is possible (should be unless 1x1 hole)
             reverse = OPPOSITE.get(self.dir)
-            if self.game.can_move_grid(self.gx, self.gy, reverse):
+            if self.game.can_move_grid(self.gx, self.gy, reverse, is_ghost=True):
                 self.dir = reverse
             else:
                 self.dir = DIR_NONE # Truly stuck?

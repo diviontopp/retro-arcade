@@ -1104,7 +1104,9 @@ def draw():
         ctx.fillStyle = "rgba(0,0,0,0.8)"
         ctx.fillRect(0, BOARD_SIZE // 2 - 50, BOARD_SIZE, 100)
         ctx.fillStyle = "#FF0000"
-        ctx.font = "40px monospace"
+        ctx.fillStyle = "#FF0000"
+        ctx.font = "40px 'Press Start 2P', monospace"
+        ctx.shadowColor = "#FF0000"
         ctx.shadowColor = "#FF0000"
         ctx.shadowBlur = 10
         ctx.fillText("CHECKMATE", BOARD_SIZE/2, BOARD_SIZE/2)
@@ -1113,7 +1115,9 @@ def draw():
         ctx.fillStyle = "rgba(0,0,0,0.8)"
         ctx.fillRect(0, BOARD_SIZE // 2 - 50, BOARD_SIZE, 100)
         ctx.fillStyle = "#FFFFFF"
-        ctx.font = "40px monospace"
+        ctx.fillStyle = "#FFFFFF"
+        ctx.font = "40px 'Press Start 2P', monospace"
+        ctx.fillText("STALEMATE", BOARD_SIZE/2, BOARD_SIZE/2)
         ctx.fillText("STALEMATE", BOARD_SIZE/2, BOARD_SIZE/2)
 
 def reset_game():
@@ -1153,4 +1157,6 @@ def cleanup():
             canvas.removeEventListener('mousedown', click_proxy); click_proxy.destroy()
             canvas.removeEventListener('mousemove', move_proxy); move_proxy.destroy()
             canvas.removeEventListener('mouseup', up_click_proxy); up_click_proxy.destroy()
+    except: pass
+    try: proxy_loop.destroy()
     except: pass

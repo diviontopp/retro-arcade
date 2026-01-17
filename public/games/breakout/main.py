@@ -298,13 +298,14 @@ def reset_game():
     except: pass
     init_bricks()
     ball.reset()
+    ball.base_speed = 2.5
 
 def next_level():
     global level, level_complete, level_complete_timer
     level += 1
     level_complete = False
     level_complete_timer = 0
-    ball.base_speed = min(12, 8 + level * 0.5)  # Increase speed each level
+    ball.base_speed = min(9, 2.5 + (level - 1) * 1.0)  # 2.5 -> 3.5 -> 4.5 etc
     init_bricks()
     ball.reset()
     try: js.window.triggerSFX('powerup')
@@ -449,6 +450,8 @@ def cleanup():
     if hasattr(js.window, 'breakout_req_id'):
         js.window.cancelAnimationFrame(js.window.breakout_req_id)
     try: js.window.cancelAnimationFrame(req_id)
+    except: pass
+    try: proxy_loop.destroy()
     except: pass
     try: js.document.removeEventListener('keydown', down_proxy)
     except: pass

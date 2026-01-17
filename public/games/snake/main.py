@@ -257,9 +257,5 @@ req_id = js.window.requestAnimationFrame(proxy_loop)
 def cleanup():
      try: js.window.cancelAnimationFrame(req_id)
      except: pass
-     try: js.document.removeEventListener('keydown', key_proxy)
-     except: pass
-     try: key_proxy.destroy()
-     except: pass
      try: proxy_loop.destroy()
      except: pass
