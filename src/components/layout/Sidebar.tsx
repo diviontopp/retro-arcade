@@ -71,8 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenGame, isMobile = false }) => {
                                     width: '100%',
                                     height: '100%',
                                     objectFit: 'cover',
-                                    imageRendering: 'pixelated',
-                                    filter: label === 'chess' ? 'invert(100%) sepia(100%) saturate(500%) hue-rotate(80deg) brightness(1.2) drop-shadow(0 0 2px #00FF41)' : 'none'
+                                    imageRendering: 'pixelated'
                                 }}
                             />
                         )
