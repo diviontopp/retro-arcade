@@ -321,32 +321,60 @@ class Renderer:
         sy = GRID_ORIGIN_Y + gy * GRID_CELL_SIZE
         
         if ghost:
-            ctx.fillStyle = "rgba(255, 255, 255, 0.2)"
-            ctx.fillRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)" # Faint ghost
+            ctx.fillRect(sx+1, sy+1, GRID_CELL_SIZE-2, GRID_CELL_SIZE-2)
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"
+            ctx.strokeRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
             return
 
         # Use specific color for block type
         base_color = SHAPE_COLORS.get(type_key, '#00B800')
 
-        # Outer
+        # 1. Base Fill
         ctx.fillStyle = base_color
         ctx.fillRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
         
-        # Highlights (Top/Left White)
-        ctx.fillStyle = "rgba(255,255,255,0.5)"
-        ctx.fillRect(sx, sy, GRID_CELL_SIZE, 2) # Top
-        ctx.fillRect(sx, sy, 2, GRID_CELL_SIZE) # Left
+        # 2. Black Border (Stroke)
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = 1
+        ctx.strokeRect(sx, sy, GRID_CELL_SIZE, GRID_CELL_SIZE)
         
-        # Inner
-        ctx.fillStyle = "rgba(0,0,0,0.2)" # Darker center like NES
-        inset = 4 
-        ctx.fillRect(sx + inset, sy + inset, GRID_CELL_SIZE - inset*2, GRID_CELL_SIZE - inset*2)
+        # 3. Retro Bevel / Texture
+        # Top-Left Highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+        ctx.fillRect(sx, sy, GRID_CELL_SIZE, 2)
+        ctx.fillRect(sx, sy, 2, GRID_CELL_SIZE)
+        
+        # Bottom-Right Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
+        ctx.fillRect(sx + GRID_CELL_SIZE - 2, sy, 2, GRID_CELL_SIZE)
+        ctx.fillRect(sx, sy + GRID_CELL_SIZE - 2, GRID_CELL_SIZE, 2)
+        
+        # Inner Shine Dot (Top-Left)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'
+        ctx.fillRect(sx + 3, sy + 3, 2, 2)
 
     def draw_mini_block(self, x, y, size=12, type_key='T'):
-        # Scaled down block
-        color = SHAPE_COLORS.get(type_key, '#00B800')
-        ctx.fillStyle = color
+        # Scaled down version of retro block
+        base_color = SHAPE_COLORS.get(type_key, '#00B800')
+        
+        ctx.fillStyle = base_color
         ctx.fillRect(x, y, size, size)
+        
+        # Border
+        ctx.strokeStyle = '#000000'
+        ctx.lineWidth = 1
+        ctx.strokeRect(x, y, size, size)
+        
+        # Highlights
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+        ctx.fillRect(x, y, size, 2)
+        ctx.fillRect(x, y, 2, size)
+        
+        # Shadows
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'
+        ctx.fillRect(x + size - 2, y, 2, size)
+        ctx.fillRect(x, y + size - 2, size, 2)
         
         ctx.fillStyle = "rgba(0,0,0,0.2)"
         inset = size // 4

@@ -837,7 +837,7 @@ import random
 piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 2
+DEPTH = 1  # Reduced from 2 to make AI easier to defeat
 
 def find_best_move(gs, valid_moves):
     global next_move

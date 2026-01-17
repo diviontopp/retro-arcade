@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import audioBus from '../../services/AudioBus';
 
 // Retro App Icon Button - defined OUTSIDE to prevent re-creation on Taskbar re-renders
-const AppButton: React.FC<{ icon: string; title: string; onClick: () => void; isImage?: boolean }> = ({ icon, title, onClick, isImage = false }) => {
+const AppButton: React.FC<{ icon: string; title: string; onClick: () => void; isImage?: boolean; iconStyle?: React.CSSProperties }> = ({ icon, title, onClick, isImage = false, iconStyle = {} }) => {
     const [isHovered, setIsHovered] = useState(false);
 
     const handleMouseEnter = React.useCallback(() => {
@@ -56,7 +56,8 @@ const AppButton: React.FC<{ icon: string; title: string; onClick: () => void; is
                             width: '100%',
                             height: '100%',
                             objectFit: 'cover',
-                            pointerEvents: 'none'
+                            pointerEvents: 'none',
+                            ...iconStyle
                         }}
                     />
                 ) : (
@@ -121,7 +122,16 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
 
             {/* Apps Collection */}
             <AppButton icon="/icons/bug.png" title="avatar" onClick={() => onOpenWindow('AVATAR_TOGGLE')} isImage />
-            <AppButton icon="/icons/random.png" title="random" onClick={() => onOpenWindow('RANDOM')} isImage />
+            <AppButton
+                icon="/games/chess/icon.png"
+                title="chess"
+                onClick={() => onOpenWindow('CHESS')}
+                isImage
+                iconStyle={{
+                    filter: 'invert(100%) sepia(100%) saturate(500%) hue-rotate(80deg) brightness(1.2) drop-shadow(0 0 2px #00FF41)',
+                    backgroundColor: 'black'
+                }}
+            />
 
             <div style={{ width: '2px', height: '40px', background: 'var(--primary)', margin: '0 16px' }}></div>
 

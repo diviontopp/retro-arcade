@@ -8,7 +8,7 @@ const ScoresContent: React.FC = () => {
     const [scores, setScores] = useState<Record<string, any[]>>({});
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [selectedGame, setSelectedGame] = useState<string>('INVADERS');
-    const games = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS'];
+    const games = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'PACMAN'];
 
     useEffect(() => {
         const unsubAuth = onAuthStateChanged(auth, (user) => setCurrentUser(user));

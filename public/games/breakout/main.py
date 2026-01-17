@@ -313,11 +313,6 @@ def next_level():
 def update():
     global score, lives, game_over, level_complete, level_complete_timer
     
-    if game_over or level_complete:
-        if level_complete:
-            level_complete_timer += 1
-        return
-
     # Poll Input (Zero Latency)
     # 2=Left, 3=Right, 4=Space, 5=Enter
     
@@ -325,7 +320,6 @@ def update():
     try:
         if fast_input.check_new(5):
              if game_over: reset_game()
-             elif level_complete: next_level()
     except: pass
     
     # Paddle Movement
@@ -361,7 +355,16 @@ def update():
             if all(not b.alive for b in bricks):
                 level_complete = True
                 level_complete_timer = 0
+                ball.launched = False # Stop ball safely during transition
+                try: js.window.submitScore(score)
+                except: pass # Save progress score
             break
+            
+    # Level Transition (Seamless)
+    if level_complete:
+        level_complete_timer += 1
+        if level_complete_timer > 60: # 1 Second Delay
+            next_level()
 
     # Bottom boundary
     if ball.y > 600:
@@ -414,12 +417,12 @@ def draw():
     ctx.textAlign = 'right'
     ctx.fillText(f"LIVES: {lives}", 780, 28)
     
-    # Level Complete Message
-    if level_complete:
-        ctx.fillStyle = '#00FF41'
+    # Game Over Message
+    if game_over:
+        ctx.fillStyle = '#FF0000'
         ctx.font = '48px "Press Start 2P", sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText("LEVEL COMPLETE!", 400, 280)
+        ctx.fillText("GAME OVER", 400, 280)
         ctx.font = '20px "Press Start 2P", sans-serif'
         ctx.fillText("PRESS ENTER", 400, 340)
 

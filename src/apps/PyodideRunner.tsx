@@ -260,7 +260,11 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                             fontFamily: '"Press Start 2P", monospace',
                             fontSize: '24px',
                             animation: 'blink 1s infinite',
-                            textTransform: 'uppercase'
+                            textTransform: 'uppercase',
+                            textAlign: 'center',
+                            lineHeight: '1.5',
+                            width: '100%',
+                            padding: '0 20px'
                         }}>
                             INITIALIZING SYSTEM...
                         </div>

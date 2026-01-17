@@ -6,7 +6,7 @@ import AvatarPanel from './components/layout/AvatarPanel';
 import ChatBox from './components/ui/ChatBox';
 import WindowFrame from './components/ui/WindowFrame';
 import PyodideRunner from './apps/PyodideRunner';
-import { Particles, Scanline, ClickEffect } from './components/fx/Animations';
+import { Scanline, ClickEffect } from './components/fx/Animations';
 import BootScreen from './components/ui/BootScreen';
 import {
   CalcApp, TerminalApp, NotepadApp, CalendarApp, StopwatchApp,
@@ -42,7 +42,6 @@ function App() {
   }, []);
 
   const [windows, setWindows] = useState<{ id: string; type: string; title: string; x: number; y: number; width?: number | string; height?: number | string; minimized?: boolean }[]>([]);
-  const [showParticles, setShowParticles] = useState(false);
   const [showAvatar, setShowAvatar] = useState(true);
   const [mainContentMode, setMainContentMode] = useState<'ABOUT' | 'TECH_STACK' | 'MUSIC' | 'PHOTOS' | 'CONTROLS' | 'SCORES'>('ABOUT');
 
@@ -63,7 +62,6 @@ function App() {
 
       LOGIN: { title: 'access_control.sys', width: 340, height: 400 },
       AVATAR_TOGGLE: { title: 'avatar.exe', width: 300, height: 200 },
-      RANDOM: { title: 'random.exe', width: 300, height: 250 },
       GALLERY: { title: 'gallery.exe', width: 360, height: 420 },
       TECH_STACK: { title: 'tech_stack.info', width: 350, height: 400 },
       // Games
@@ -71,6 +69,7 @@ function App() {
       TETRIS: { title: 'tetris.py', width: 660, height: 530 },
       BREAKOUT: { title: 'breakout.py', width: 660, height: 530 },
       INVADERS: { title: 'invaders.py', width: 660, height: 530 },
+      PACMAN: { title: 'pacman.py', width: 448, height: 576 },
       CHESS: { title: 'chess.py', width: 660, height: 600 },
     };
     return configs[type] || { title: `${type.toLowerCase()}.exe`, width: 320, height: 280 };
@@ -78,11 +77,6 @@ function App() {
 
   const openWindow = (type: string) => {
     // Special handlers
-    if (type === 'RANDOM') {
-      setShowParticles(prev => !prev);
-      setTimeout(() => setShowParticles(false), 500);  // Trigger particle burst
-      return;
-    }
 
     if (type === 'AVATAR_TOGGLE') {
       setShowAvatar(prev => !prev);
@@ -130,7 +124,7 @@ function App() {
     }
 
     const config = getWindowConfig(type);
-    const isGame = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'CHESS'].includes(type);
+    const isGame = ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'PACMAN', 'CHESS'].includes(type);
 
     // Auto-maximize games on tablet/mobile interaction (basically if not a huge desktop)
     const shouldMaximize = isGame && window.innerWidth < 1200;
@@ -198,6 +192,7 @@ function App() {
       case 'TETRIS': return <PyodideRunner scriptName="tetris" onClose={onClose} />;
       case 'BREAKOUT': return <PyodideRunner scriptName="breakout" onClose={onClose} />;
       case 'INVADERS': return <PyodideRunner scriptName="invaders" onClose={onClose} />;
+      case 'PACMAN': return <PyodideRunner scriptName="pacman" onClose={onClose} />;
       case 'CHESS': return <PyodideRunner scriptName="chess" onClose={onClose} />;
       default: return <div style={{ padding: '20px' }}>{type.toLowerCase()}<br />[coming soon]</div>;
     }
@@ -214,12 +209,11 @@ function App() {
   }
 
   // Check if any game is currently open AND VISIBLE (not minimized)
-  const isAnyGameOpen = windows.some(w => ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'CHESS'].includes(w.type) && !w.minimized);
+  const isAnyGameOpen = windows.some(w => ['SNAKE', 'TETRIS', 'BREAKOUT', 'INVADERS', 'PACMAN', 'CHESS'].includes(w.type) && !w.minimized);
 
   return (
     <>
       <Scanline />
-      <Particles active={showParticles} />
       <ClickEffect />
 
       <div className="app-container" style={isMobile ? {
