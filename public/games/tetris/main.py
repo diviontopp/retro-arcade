@@ -574,7 +574,7 @@ class Game:
 
                     self.score += score_add
                     self.lines += count
-                    self.level = 1 + (self.lines // 10)
+                    self.level = 1 + (self.lines // 2)
                     
                     if action_str:
                          self.action_text = action_str
@@ -592,17 +592,13 @@ class Game:
              return
 
         # Rotation
+        # Up/W = Clockwise
         if input_state.check_new('w') or input_state.check_new('up'):
-            self.try_rotate(-1)
+            self.try_rotate(1)
 
-        # Cheat: Change Shape
+        # Z = Counter-Clockwise
         if input_state.check_new('z'):
-            current_idx = SHAPE_ORDER.index(self.curr_piece_type)
-            next_idx = (current_idx + 1) % len(SHAPE_ORDER)
-            self.curr_piece_type = SHAPE_ORDER[next_idx]
-            self.curr_rot = 0
-            self.curr_piece = SHAPES[self.curr_piece_type][0]
-            js.window.triggerSFX('rotate')
+            self.try_rotate(-1)
         
         # Hard Drop
         if input_state.check_new('space'):
