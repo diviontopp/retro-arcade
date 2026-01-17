@@ -127,10 +127,6 @@ const Taskbar: React.FC<{ onOpenWindow: (type: string) => void }> = ({ onOpenWin
                 title="chess"
                 onClick={() => onOpenWindow('CHESS')}
                 isImage
-                iconStyle={{
-                    filter: 'invert(100%) sepia(100%) saturate(500%) hue-rotate(80deg) brightness(1.2) drop-shadow(0 0 2px #00FF41)',
-                    backgroundColor: 'black'
-                }}
             />
 
             <div style={{ width: '2px', height: '40px', background: 'var(--primary)', margin: '0 16px' }}></div>
