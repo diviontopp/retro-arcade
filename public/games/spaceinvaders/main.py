@@ -303,6 +303,17 @@ class Game:
             if not p.active: continue
             
             if 'player' in p.type_id:
+                for s in self.shields:
+                    if s.health > 0 and \
+                       p.x < s.x + s.width and p.x + p.width > s.x and \
+                       p.y < s.y + s.height and p.y + p.height > s.y:
+                        s.health -= 2
+                        p.active = False
+                        try: js.window.triggerSFX('bounce')
+                        except: pass
+                        break
+                if not p.active: continue
+
                 for e in self.enemies:
                     if e.active and \
                        p.x < e.x + e.width and p.x + p.width > e.x and \
@@ -316,6 +327,18 @@ class Game:
                         break
 
             elif 'enemy' in p.type_id: # Enemy laser hits player
+                 # Shield Check for Enemy Lasers too
+                 for s in self.shields:
+                    if s.health > 0 and \
+                       p.x < s.x + s.width and p.x + p.width > s.x and \
+                       p.y < s.y + s.height and p.y + p.height > s.y:
+                        s.health -= 2
+                        p.active = False
+                        try: js.window.triggerSFX('bounce')
+                        except: pass
+                        break
+                 if not p.active: continue
+
                  if p.x < invaders_game.playerX + PLAYER_WIDTH and \
                     p.x + p.width > invaders_game.playerX and \
                     p.y < invaders_game.playerY + PLAYER_HEIGHT and \

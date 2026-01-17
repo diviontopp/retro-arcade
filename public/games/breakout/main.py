@@ -368,13 +368,15 @@ def update():
         lives -= 1
         if lives <= 0:
             game_over = True
-            try: js.window.setGameOver(True)
+            try: js.window.setGameOver(True, score)
             except: pass
             try: 
                 js.window.triggerSFX('game_over')
                 if score > 0 and not score_submitted: 
                      js.window.submitScore(score)
                      score_submitted = True
+                     try: js.window.pyodide.globals['score_submitted'] = True
+                     except: pass
             except: pass
         else:
             ball.reset()

@@ -112,7 +112,7 @@ def update():
 
     # Food Collision
     if (new_x, new_y) == food:
-        score += 10
+        score += 25
         spawn_food()
         shake.trigger(2)
         try: js.window.triggerSFX('score')
