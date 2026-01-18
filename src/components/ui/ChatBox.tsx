@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ChatMessage {
     sender: string;
@@ -7,6 +8,7 @@ interface ChatMessage {
 
 // Hardcoded chat box component
 const ChatBox: React.FC = () => {
+    const { user } = useAuth();
     const [messages, setMessages] = useState<ChatMessage[]>([
         { sender: 'system', text: 'w3lcome to the arcade...' },
         { sender: 'neo', text: 'yo. another consciousness enters the void.' },
@@ -25,7 +27,9 @@ const ChatBox: React.FC = () => {
         if (!input.trim()) return;
 
         const currentInput = input;
-        const userMsg = { sender: 'guest', text: currentInput };
+        // Use actual username/email or default to guest
+        const senderName = user?.displayName || user?.email?.split('@')[0] || 'guest';
+        const userMsg = { sender: senderName, text: currentInput };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
 
