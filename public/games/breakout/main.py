@@ -29,7 +29,7 @@ img_bricks["purple"].src = "/games/breakout/assets/brick_purple.png"
 
 class Paddle:
     def __init__(self):
-        self.width = 160
+        self.width = 120 # Reduced from 160
         self.height = 28
         self.x = (800 - self.width) // 2
         self.y = 550
@@ -51,7 +51,7 @@ class Paddle:
 class Ball:
     def __init__(self):
         self.size = 24
-        self.base_speed = 2.5
+        self.base_speed = 3.0 # Increased from 2.5
         self.reset()
 
     def reset(self):
@@ -298,14 +298,14 @@ def reset_game():
     except: pass
     init_bricks()
     ball.reset()
-    ball.base_speed = 2.5
+    ball.base_speed = 3.0
 
 def next_level():
     global level, level_complete, level_complete_timer
     level += 1
     level_complete = False
     level_complete_timer = 0
-    ball.base_speed = min(9, 2.5 + (level - 1) * 1.0)  # 2.5 -> 3.5 -> 4.5 etc
+    ball.base_speed = min(9, 3.0 + (level - 1) * 1.0)  # 3.0 -> 4.0 -> 5.0 etc
     init_bricks()
     ball.reset()
     try: js.window.triggerSFX('powerup')
