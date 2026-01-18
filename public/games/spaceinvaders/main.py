@@ -275,30 +275,27 @@ class Boss:
         self.y = y
         self.width = BOSS_WIDTH
         self.height = BOSS_HEIGHT
-        self.health = 1000 # Tougher boss
-        self.max_health = 1000
+        self.health = 500 # Reduced from 1000
+        self.max_health = 500
         self.direction = 1
         self.active = True
         self.attack_timer = 0
-        
-        self.state = 'HORIZONTAL' # 'HORIZONTAL' or 'VERTICAL'
-        self.vertical_target = 0
+        self.frame_count = 0
         
     def update(self):
         self.attack_timer += 1
+        self.frame_count += 1
         
-        if self.state == 'HORIZONTAL':
-            self.x += self.direction * 3 # Faster
-            if self.x > SCREEN_WIDTH - self.width - 20 or self.x < 20:
-                self.state = 'VERTICAL'
-                self.vertical_target = min(self.y + 40, 350) # Cap low point
-                self.direction *= -1
-                
-        elif self.state == 'VERTICAL':
-            self.y += 2
-            if self.y >= self.vertical_target:
-                self.y = self.vertical_target
-                self.state = 'HORIZONTAL'
+        # Horizontal Movement
+        self.x += self.direction * 2 # Reduced Speed from 4 to 2
+        if self.x > SCREEN_WIDTH - self.width - 20:
+            self.direction = -1
+        elif self.x < 20:
+            self.direction = 1
+            
+        # Vertical Hover (Sine Wave)
+        # Keeps boss safe distance from player (base Y 100, +/- 50px)
+        self.y = 100 + math.sin(self.frame_count * 0.03) * 50
         
     def draw(self, ctx):
         if not self.active: return
@@ -389,8 +386,17 @@ class Game:
         self.enemies = [] 
         
         if self.level == 5:
-            # Boss is bigger (256x128) and comes forward (y=90)
+            # Boss Level 1
             self.boss = Boss(SCREEN_WIDTH//2 - BOSS_WIDTH//2, 90)
+            try: js.window.triggerSFX('start')
+            except: pass
+            return
+            
+        elif self.level == 10:
+            # Boss Level 2 (Harder)
+            self.boss = Boss(SCREEN_WIDTH//2 - BOSS_WIDTH//2, 90)
+            self.boss.health = 1000
+            self.boss.max_health = 1000
             try: js.window.triggerSFX('start')
             except: pass
             return
@@ -401,7 +407,7 @@ class Game:
         rows_def = []
         
         if self.level == 1:
-            # 4 rows of purple invaders (crab_purple) - fallback to 'invader_default' which is invader.png
+            # 4 rows of purple invaders
             for _ in range(4): rows_def.append('invader_default')
             
         elif self.level == 2:
@@ -417,11 +423,42 @@ class Game:
         elif self.level == 4:
             # 2 rows red octopus, 2 rows green octopus
             for _ in range(2): rows_def.append('octopus_red')
-            for _ in range(2): rows_def.append('octopus_green') # mapped to squid_green.png
+            for _ in range(2): rows_def.append('octopus_green') 
+            
+        elif self.level == 6:
+            # 1 row purple, 1 row blue, 1 row red, 1 row green
+            rows_def = ['invader_default', 'crab_blue', 'octopus_red', 'octopus_green']
+            
+        elif self.level == 7:
+            # 1 row blue, 2 row red, 1 row green
+            rows_def = ['crab_blue', 'octopus_red', 'octopus_red', 'octopus_green']
+            
+        elif self.level == 8:
+            # 1 row blue, 1 row red, 2 row green
+            rows_def = ['crab_blue', 'octopus_red', 'octopus_green', 'octopus_green']
+            
+        elif self.level == 9:
+            # 3 row green, 1 row red
+            rows_def = ['octopus_green', 'octopus_green', 'octopus_green', 'octopus_red']
             
         else:
-            # Post-boss infinity scaling - keep to 4 rows
-            rows_def = ['invader_default', 'crab_blue', 'octopus_red', 'octopus_green']
+            # Post-boss infinity scaling (Level 11+)
+            # 25% Chance for Boss + Invaders
+            if random.random() < 0.25:
+                # Spawn Boss (Hard)
+                self.boss = Boss(SCREEN_WIDTH//2 - BOSS_WIDTH//2, 90)
+                self.boss.health = 1000
+                self.boss.max_health = 1000
+                try: js.window.triggerSFX('start')
+                except: pass
+                
+                # ... and Lesser Invaders (2 rows only)
+                pool = ['invader_default', 'crab_blue', 'octopus_red', 'octopus_green']
+                rows_def = [random.choice(pool) for _ in range(2)]
+            else:
+                # Standard Infinity (4 rows)
+                pool = ['invader_default', 'crab_blue', 'octopus_red', 'octopus_green']
+                rows_def = [random.choice(pool) for _ in range(4)]
 
         for r, sprite_key in enumerate(rows_def):
             for col in range(8): # 8 columns
@@ -461,7 +498,7 @@ class Game:
         # BOSS
         if self.boss and self.boss.active:
             self.boss.update()
-            if self.boss.attack_timer > 60:
+            if self.boss.attack_timer > 90: # Slower Attack (1.5s)
                 self.boss.attack_timer = 0
                 self.projectiles.append(Projectile(self.boss.x + 20, self.boss.y + 60, 'enemy_laser'))
                 self.projectiles.append(Projectile(self.boss.x + self.boss.width - 20, self.boss.y + 60, 'enemy_laser'))
@@ -537,6 +574,34 @@ class Game:
         for e in self.enemies:
             if not e.active: continue
             
+            # COLLISION CHECK WITH PLAYER
+            # Hitbox: Player is 64x64, Enemy is 48x48. 
+            # Use smaller hitbox for fairness (padding 10)
+            if e.x < self.playerX + PLAYER_WIDTH - 10 and \
+               e.x + e.width > self.playerX + 10 and \
+               e.y < self.playerY + PLAYER_HEIGHT - 10 and \
+               e.y + e.height > self.playerY + 10:
+                   
+                # HIT!
+                self.lives -= 1
+                self.playerX = SCREEN_WIDTH // 2 - PLAYER_WIDTH // 2
+                self.spawn_particles(self.playerX, self.playerY, '#FFFFFF', 20)
+                try: js.window.triggerSFX('crash')
+                except: pass
+                
+                # Check Death
+                if self.lives <= 0:
+                    self.state = GameStateEnum.GAME_OVER
+                    try: js.window.setGameOver(True, self.score)
+                    except: pass
+                    if not getattr(self, 'score_submitted', False):
+                        try: js.window.submitScore(self.score)
+                        except: pass
+                        self.score_submitted = True
+                        try: js.window.pyodide.globals['score_submitted'] = True
+                        except: pass
+                pass # Don't break, allow multiple collisions? No, just handled one frame.
+
             # MOVEMENT
             if e.state == 'GRID':
                 e.x += e.direction * game_speed
