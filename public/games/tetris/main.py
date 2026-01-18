@@ -502,6 +502,11 @@ class Game:
         return occupied >= 3
 
     def try_rotate(self, dir):
+        # User requested fix: Prevent rotation if touching ground/blocks?
+        # Check if currently touching ground
+        if self.board.is_collision(self.curr_piece, self.curr_x, self.curr_y + 1):
+            return # Prevent rotation if grounded
+
         new_rot = (self.curr_rot + dir) % 4
         new_shape = SHAPES[self.curr_piece_type][new_rot]
         kicks = KICKS_I if self.curr_piece_type == 'I' else KICKS
