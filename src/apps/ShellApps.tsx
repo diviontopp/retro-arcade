@@ -700,25 +700,75 @@ export const ComicApp: React.FC = () => (
 // ============= HOME APP =============
 export const HomeApp: React.FC = () => {
     const [scores, setScores] = useState<Record<string, number>>({});
+    const [username, setUsername] = useState<string>('guest');
     const games = ['snake', 'tetris', 'breakout', 'invaders', 'pacman', 'chess'];
 
-    // Load scores on mount and refresh periodically
-    useEffect(() => {
-        const loadScores = () => {
-            setScores(ScoreService.getLocalScores());
-        };
+    // Load scores function
+    const loadScores = () => {
+        setScores(ScoreService.getLocalScores());
+    };
 
+    // Get username from auth
+    useEffect(() => {
+        // Try to get username from Firebase auth
+        const checkAuth = async () => {
+            try {
+                const { auth } = await import('../services/firebase');
+                const user = auth.currentUser;
+                if (user) {
+                    setUsername(user.displayName || user.email?.split('@')[0] || 'guest');
+                }
+
+                // Listen for auth state changes
+                auth.onAuthStateChanged((u) => {
+                    if (u) {
+                        setUsername(u.displayName || u.email?.split('@')[0] || 'guest');
+                    } else {
+                        setUsername('guest');
+                    }
+                });
+            } catch (e) {
+                console.log('Auth not available');
+            }
+        };
+        checkAuth();
+    }, []);
+
+    // Load scores on mount
+    useEffect(() => {
         loadScores(); // Initial load
 
-        // Refresh scores every 2 seconds (in case user played a game and came back)
+        // Refresh scores every 2 seconds
         const interval = setInterval(loadScores, 2000);
-        return () => clearInterval(interval);
+
+        // Also listen for storage events (when localStorage changes in another tab/iframe)
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'arcade_scores') {
+                loadScores();
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+
+        // Listen for score updates from game iframes via postMessage
+        const handleMessage = (e: MessageEvent) => {
+            if (e.data?.type === 'SUBMIT_SCORE' || e.data?.type === 'SCORE_UPDATE') {
+                // Delay slightly to let localStorage update complete
+                setTimeout(loadScores, 100);
+            }
+        };
+        window.addEventListener('message', handleMessage);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('storage', handleStorage);
+            window.removeEventListener('message', handleMessage);
+        };
     }, []);
 
     return (
         <div style={{ padding: '20px' }}>
             <div style={{ fontSize: '20px', marginBottom: '15px' }}>🏠 home</div>
-            <div style={{ color: 'slateblue', marginBottom: '10px' }}>welcome back, guest</div>
+            <div style={{ color: 'slateblue', marginBottom: '10px' }}>welcome back, {username}</div>
             <div style={{ borderTop: '2px dashed var(--primary)', paddingTop: '15px' }}>
                 <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>🏁 HIGH SCORES:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
