@@ -1,13 +1,92 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface BootScreenProps {
     onComplete: () => void;
 }
 
+// All assets that need to be preloaded
+const SIDEBAR_ICONS = [
+    '/icons/about.png', '/icons/bug.png', '/icons/calculator.png', '/icons/calendar.png',
+    '/icons/chess.png', '/icons/clock.png', '/icons/comic.png', '/icons/controls.png',
+    '/icons/home.png', '/icons/image.png', '/icons/login.png', '/icons/monitor.png',
+    '/icons/music.png', '/icons/notepad.png', '/icons/paint.png', '/icons/pet.png',
+    '/icons/photos.png', '/icons/stopwatch.png', '/icons/techstack.png', '/icons/terminal.png',
+    '/icons/text.png'
+];
+
+const GAME_ICONS = [
+    '/games/snake/icon.png', '/games/tetris/icon.png', '/games/breakout/icon.png',
+    '/games/spaceinvaders/icon.png', '/games/pacman/icon.png'
+];
+
+// Photos used in sidebar and gallery
+const PHOTOS = Array.from({ length: 36 }, (_, i) => `/photos/p${i + 1}.jpg`);
+
+// All images to preload
+const ALL_IMAGES = [...SIDEBAR_ICONS, ...GAME_ICONS, ...PHOTOS];
+
+// Font files to preload
+const FONTS_TO_LOAD = [
+    { family: 'LowresPixel', src: '/fonts/LowresPixel-Regular.otf' },
+];
+
 const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
     const [lines, setLines] = useState<string[]>([]);
     const [showLogo, setShowLogo] = useState(false);
     const [waitForInput, setWaitForInput] = useState(false);
+    const [assetsLoaded, setAssetsLoaded] = useState(false);
+    const [loadProgress, setLoadProgress] = useState(0);
+    const [loadedCount, setLoadedCount] = useState(0);
+    const [totalAssets] = useState(ALL_IMAGES.length + FONTS_TO_LOAD.length);
+
+    // Preload all critical assets
+    const preloadAssets = useCallback(async () => {
+        let loaded = 0;
+        const updateProgress = () => {
+            loaded++;
+            setLoadedCount(loaded);
+            setLoadProgress(Math.floor((loaded / totalAssets) * 100));
+        };
+
+        // Preload fonts first
+        const fontPromises = FONTS_TO_LOAD.map(font => {
+            return new Promise<void>((resolve) => {
+                const fontFace = new FontFace(font.family, `url(${font.src})`);
+                fontFace.load().then((loadedFont) => {
+                    document.fonts.add(loadedFont);
+                    updateProgress();
+                    resolve();
+                }).catch(() => {
+                    updateProgress();
+                    resolve(); // Continue even if font fails
+                });
+            });
+        });
+
+        // Preload all images
+        const imagePromises = ALL_IMAGES.map(src => {
+            return new Promise<void>((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    updateProgress();
+                    resolve();
+                };
+                img.onerror = () => {
+                    updateProgress();
+                    resolve(); // Continue even if image fails
+                };
+                img.src = src;
+            });
+        });
+
+        // Wait for all assets
+        await Promise.all([...fontPromises, ...imagePromises]);
+
+        // Also ensure document fonts are ready
+        await document.fonts.ready;
+
+        setAssetsLoaded(true);
+    }, [totalAssets]);
 
     // Boot messages to display
     const bootMessages = [
@@ -27,12 +106,12 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
         '',
         'Initializing Pyodide WASM Engine...',
         'Loading Game Catalog...',
-        '',
-        'BOOT COMPLETE. Welcome to the Arcade.',
-        ''
     ];
 
     useEffect(() => {
+        // Start preloading assets immediately
+        preloadAssets();
+
         // Show logo first
         setTimeout(() => setShowLogo(true), 300);
 
@@ -44,14 +123,26 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
                 index++;
             } else {
                 clearInterval(interval);
-                // Wait for user interaction
-                setLines(prev => [...prev, '', 'SYSTEM READY.', 'PRESS ANY KEY OR CLICK TO START...']);
-                setWaitForInput(true);
             }
-        }, 80); // Slightly faster text for mobile patience
+        }, 80);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [preloadAssets]);
+
+    // Once both messages and assets are done, show final message
+    useEffect(() => {
+        if (assetsLoaded && lines.length >= bootMessages.length) {
+            setLines(prev => [
+                ...prev,
+                '',
+                'BOOT COMPLETE. Welcome to the Arcade.',
+                '',
+                'SYSTEM READY.',
+                'PRESS ANY KEY OR CLICK TO START...'
+            ]);
+            setWaitForInput(true);
+        }
+    }, [assetsLoaded, lines.length]);
 
     useEffect(() => {
         if (!waitForInput) return;
@@ -62,7 +153,7 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
 
         window.addEventListener('keydown', handleInput);
         window.addEventListener('click', handleInput);
-        window.addEventListener('touchstart', handleInput); // Added touch start
+        window.addEventListener('touchstart', handleInput);
 
         return () => {
             window.removeEventListener('keydown', handleInput);
@@ -108,6 +199,41 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
                         marginTop: '5px',
                         letterSpacing: '2px'
                     }}>CYBER GOTHIC SYSTEM</div>
+                </div>
+            )}
+
+            {/* Loading Progress Bar - Shows while assets are loading */}
+            {!assetsLoaded && (
+                <div className="loading-progress" style={{
+                    position: 'fixed',
+                    bottom: '50px',
+                    left: '50px',
+                    right: '50px',
+                }}>
+                    <div style={{ color: '#FFFF00', marginBottom: '8px', fontSize: '12px' }}>
+                        Loading assets... {loadedCount}/{totalAssets}
+                    </div>
+                    <div style={{
+                        width: '100%',
+                        height: '16px',
+                        border: '2px solid #00FF41',
+                        backgroundColor: '#000',
+                    }}>
+                        <div style={{
+                            width: `${loadProgress}%`,
+                            height: '100%',
+                            backgroundColor: '#00FF41',
+                            transition: 'width 0.1s linear',
+                        }} />
+                    </div>
+                    <div style={{
+                        color: '#00FF41',
+                        marginTop: '4px',
+                        fontSize: '12px',
+                        textAlign: 'right'
+                    }}>
+                        {loadProgress}%
+                    </div>
                 </div>
             )}
 
