@@ -87,8 +87,22 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
         'Detecting Avatar Module    ... Neo Avatar Loaded',
         '',
         'Initializing Pyodide WASM Engine...',
+        'Loading Python Runtime     ... OK',
         'Loading Game Catalog...',
+        '',
+        'Mounting Virtual Filesystem...',
+        'Loading Icon Cache         ... 21 icons cached',
+        'Loading Photo Archive      ... 36 images indexed',
+        'Loading Font Assets        ... LowresPixel OK',
+        'Initializing Audio Bus     ... 8 channels ready',
+        '',
+        'Starting Window Manager    ... OK',
+        'Loading User Preferences   ... guest profile',
+        '',
     ];
+
+    // Track if we've already shown the completion message
+    const completionShownRef = React.useRef(false);
 
     useEffect(() => {
         // Start preloading assets immediately
@@ -111,12 +125,12 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
         return () => clearInterval(interval);
     }, [preloadAssets]);
 
-    // Once both messages and assets are done, show final message
+    // Once both messages and assets are done, show final message (only once)
     useEffect(() => {
-        if (assetsLoaded && lines.length >= bootMessages.length) {
+        if (assetsLoaded && lines.length >= bootMessages.length && !completionShownRef.current) {
+            completionShownRef.current = true;
             setLines(prev => [
                 ...prev,
-                '',
                 'BOOT COMPLETE. Welcome to the Arcade.',
                 '',
                 'SYSTEM READY.',
