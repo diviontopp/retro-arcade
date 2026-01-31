@@ -699,8 +699,21 @@ export const ComicApp: React.FC = () => (
 
 // ============= HOME APP =============
 export const HomeApp: React.FC = () => {
-    const scores = ScoreService.getLocalScores();
-    const games = ['invaders', 'tetris', 'snake', 'breakout', 'chess'];
+    const [scores, setScores] = useState<Record<string, number>>({});
+    const games = ['snake', 'tetris', 'breakout', 'invaders', 'pacman', 'chess'];
+
+    // Load scores on mount and refresh periodically
+    useEffect(() => {
+        const loadScores = () => {
+            setScores(ScoreService.getLocalScores());
+        };
+
+        loadScores(); // Initial load
+
+        // Refresh scores every 2 seconds (in case user played a game and came back)
+        const interval = setInterval(loadScores, 2000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <div style={{ padding: '20px' }}>
