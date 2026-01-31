@@ -219,9 +219,9 @@ const PyodideRunner: React.FC<PyodideRunnerProps> = ({ scriptName, onClose }) =>
                             {scriptName === 'tetris' && (
                                 <>
                                     <div>MOVE: A D / ← →</div>
-                                    <div>ROTATE: W / ↑</div>
-                                    <div>DROP: S / ↓</div>
-                                    <div>CHANGE SHAPE: Z</div>
+                                    <div>ROTATE: W / ↑ / Z</div>
+                                    <div>SOFT DROP: S / ↓</div>
+                                    <div>HARD DROP: SPACE</div>
                                     <div>RESTART: ENTER</div>
                                 </>
                             )}
