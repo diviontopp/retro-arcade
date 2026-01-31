@@ -96,9 +96,6 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
         'Loading Font Assets        ... LowresPixel OK',
         'Initializing Audio Bus     ... 8 channels ready',
         '',
-        'Starting Window Manager    ... OK',
-        'Loading User Preferences   ... guest profile',
-        '',
     ];
 
     // Track if we've already shown the completion message
