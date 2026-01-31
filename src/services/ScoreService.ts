@@ -70,4 +70,31 @@ export class ScoreService {
             return () => { }; // return no-op unsubscribe
         }
     }
+
+    // Get user's personal best scores from Firebase
+    static async getUserHighScores(userId: string): Promise<Record<string, number>> {
+        const result: Record<string, number> = {};
+        const games = ['snake', 'tetris', 'breakout', 'invaders', 'pacman', 'chess'];
+
+        try {
+            for (const gameId of games) {
+                const q = query(
+                    collection(db, "scores"),
+                    where("gameId", "==", gameId),
+                    where("userId", "==", userId),
+                    orderBy("score", "desc"),
+                    limit(1)
+                );
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    result[gameId] = querySnapshot.docs[0].data().score;
+                }
+            }
+            return result;
+        } catch (e) {
+            console.error("Error fetching user scores: ", e);
+            // Fall back to local scores on error
+            return this.getLocalScores();
+        }
+    }
 }

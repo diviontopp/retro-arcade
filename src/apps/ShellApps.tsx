@@ -701,59 +701,85 @@ export const ComicApp: React.FC = () => (
 export const HomeApp: React.FC = () => {
     const [scores, setScores] = useState<Record<string, number>>({});
     const [username, setUsername] = useState<string>('guest');
+    const [userId, setUserId] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
     const games = ['snake', 'tetris', 'breakout', 'invaders', 'pacman', 'chess'];
 
-    // Load scores function
-    const loadScores = () => {
-        setScores(ScoreService.getLocalScores());
+    // Load scores - from Firebase for logged-in users, localStorage for guests
+    const loadScores = async (uid: string | null) => {
+        try {
+            if (uid) {
+                // Logged in - fetch from Firebase
+                const firebaseScores = await ScoreService.getUserHighScores(uid);
+                // Merge with local scores (take the higher of each)
+                const localScores = ScoreService.getLocalScores();
+                const merged: Record<string, number> = {};
+                for (const game of games) {
+                    merged[game] = Math.max(firebaseScores[game] || 0, localScores[game] || 0);
+                }
+                setScores(merged);
+            } else {
+                // Guest - use local scores only
+                setScores(ScoreService.getLocalScores());
+            }
+        } catch (e) {
+            console.error('Error loading scores:', e);
+            setScores(ScoreService.getLocalScores());
+        }
+        setLoading(false);
     };
 
-    // Get username from auth
+    // Get username and userId from auth
     useEffect(() => {
-        // Try to get username from Firebase auth
         const checkAuth = async () => {
             try {
                 const { auth } = await import('../services/firebase');
                 const user = auth.currentUser;
                 if (user) {
                     setUsername(user.displayName || user.email?.split('@')[0] || 'guest');
+                    setUserId(user.uid);
+                    loadScores(user.uid);
+                } else {
+                    loadScores(null);
                 }
 
                 // Listen for auth state changes
                 auth.onAuthStateChanged((u) => {
                     if (u) {
                         setUsername(u.displayName || u.email?.split('@')[0] || 'guest');
+                        setUserId(u.uid);
+                        loadScores(u.uid);
                     } else {
                         setUsername('guest');
+                        setUserId(null);
+                        loadScores(null);
                     }
                 });
             } catch (e) {
                 console.log('Auth not available');
+                loadScores(null);
             }
         };
         checkAuth();
     }, []);
 
-    // Load scores on mount
+    // Refresh scores periodically and listen for updates
     useEffect(() => {
-        loadScores(); // Initial load
+        // Refresh every 5 seconds for logged-in users (Firebase), 2 seconds for guests (localStorage)
+        const interval = setInterval(() => loadScores(userId), userId ? 5000 : 2000);
 
-        // Refresh scores every 2 seconds
-        const interval = setInterval(loadScores, 2000);
-
-        // Also listen for storage events (when localStorage changes in another tab/iframe)
+        // Listen for storage events
         const handleStorage = (e: StorageEvent) => {
             if (e.key === 'arcade_scores') {
-                loadScores();
+                loadScores(userId);
             }
         };
         window.addEventListener('storage', handleStorage);
 
-        // Listen for score updates from game iframes via postMessage
+        // Listen for score updates from game iframes
         const handleMessage = (e: MessageEvent) => {
             if (e.data?.type === 'SUBMIT_SCORE' || e.data?.type === 'SCORE_UPDATE') {
-                // Delay slightly to let localStorage update complete
-                setTimeout(loadScores, 100);
+                setTimeout(() => loadScores(userId), 500); // Delay for Firebase write
             }
         };
         window.addEventListener('message', handleMessage);
@@ -763,7 +789,7 @@ export const HomeApp: React.FC = () => {
             window.removeEventListener('storage', handleStorage);
             window.removeEventListener('message', handleMessage);
         };
-    }, []);
+    }, [userId]);
 
     return (
         <div style={{ padding: '20px' }}>
@@ -775,7 +801,9 @@ export const HomeApp: React.FC = () => {
                     {games.map(g => (
                         <div key={g} style={{ border: '1px solid #333', padding: '5px', fontSize: '12px' }}>
                             <div style={{ color: 'gray' }}>{g.toUpperCase()}</div>
-                            <div style={{ color: 'var(--primary)', fontSize: '16px' }}>{scores[g] || 0}</div>
+                            <div style={{ color: 'var(--primary)', fontSize: '16px' }}>
+                                {loading ? '...' : (scores[g] || 0)}
+                            </div>
                         </div>
                     ))}
                 </div>
