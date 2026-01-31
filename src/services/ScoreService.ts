@@ -72,24 +72,29 @@ export class ScoreService {
     }
 
     // Get user's personal best scores from Firebase
+    // Uses a simple query to avoid needing composite indexes
     static async getUserHighScores(userId: string): Promise<Record<string, number>> {
         const result: Record<string, number> = {};
-        const games = ['snake', 'tetris', 'breakout', 'invaders', 'pacman', 'chess'];
 
         try {
-            for (const gameId of games) {
-                const q = query(
-                    collection(db, "scores"),
-                    where("gameId", "==", gameId),
-                    where("userId", "==", userId),
-                    orderBy("score", "desc"),
-                    limit(1)
-                );
-                const querySnapshot = await getDocs(q);
-                if (!querySnapshot.empty) {
-                    result[gameId] = querySnapshot.docs[0].data().score;
+            // Simple query - just filter by userId, process the rest client-side
+            const q = query(
+                collection(db, "scores"),
+                where("userId", "==", userId)
+            );
+            const querySnapshot = await getDocs(q);
+
+            // Process results to find highest score per game
+            querySnapshot.docs.forEach(doc => {
+                const data = doc.data();
+                const gameId = data.gameId;
+                const score = data.score || 0;
+
+                if (!result[gameId] || score > result[gameId]) {
+                    result[gameId] = score;
                 }
-            }
+            });
+
             return result;
         } catch (e) {
             console.error("Error fetching user scores: ", e);
