@@ -35,29 +35,17 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
     const [showLogo, setShowLogo] = useState(false);
     const [waitForInput, setWaitForInput] = useState(false);
     const [assetsLoaded, setAssetsLoaded] = useState(false);
-    const [loadProgress, setLoadProgress] = useState(0);
-    const [loadedCount, setLoadedCount] = useState(0);
-    const [totalAssets] = useState(ALL_IMAGES.length + FONTS_TO_LOAD.length);
 
     // Preload all critical assets
     const preloadAssets = useCallback(async () => {
-        let loaded = 0;
-        const updateProgress = () => {
-            loaded++;
-            setLoadedCount(loaded);
-            setLoadProgress(Math.floor((loaded / totalAssets) * 100));
-        };
-
         // Preload fonts first
         const fontPromises = FONTS_TO_LOAD.map(font => {
             return new Promise<void>((resolve) => {
                 const fontFace = new FontFace(font.family, `url(${font.src})`);
                 fontFace.load().then((loadedFont) => {
                     document.fonts.add(loadedFont);
-                    updateProgress();
                     resolve();
                 }).catch(() => {
-                    updateProgress();
                     resolve(); // Continue even if font fails
                 });
             });
@@ -67,14 +55,8 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
         const imagePromises = ALL_IMAGES.map(src => {
             return new Promise<void>((resolve) => {
                 const img = new Image();
-                img.onload = () => {
-                    updateProgress();
-                    resolve();
-                };
-                img.onerror = () => {
-                    updateProgress();
-                    resolve(); // Continue even if image fails
-                };
+                img.onload = () => resolve();
+                img.onerror = () => resolve(); // Continue even if image fails
                 img.src = src;
             });
         });
@@ -86,7 +68,7 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
         await document.fonts.ready;
 
         setAssetsLoaded(true);
-    }, [totalAssets]);
+    }, []);
 
     // Boot messages to display
     const bootMessages = [
@@ -199,41 +181,6 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
                         marginTop: '5px',
                         letterSpacing: '2px'
                     }}>CYBER GOTHIC SYSTEM</div>
-                </div>
-            )}
-
-            {/* Loading Progress Bar - Shows while assets are loading */}
-            {!assetsLoaded && (
-                <div className="loading-progress" style={{
-                    position: 'fixed',
-                    bottom: '50px',
-                    left: '50px',
-                    right: '50px',
-                }}>
-                    <div style={{ color: '#FFFF00', marginBottom: '8px', fontSize: '12px' }}>
-                        Loading assets... {loadedCount}/{totalAssets}
-                    </div>
-                    <div style={{
-                        width: '100%',
-                        height: '16px',
-                        border: '2px solid #00FF41',
-                        backgroundColor: '#000',
-                    }}>
-                        <div style={{
-                            width: `${loadProgress}%`,
-                            height: '100%',
-                            backgroundColor: '#00FF41',
-                            transition: 'width 0.1s linear',
-                        }} />
-                    </div>
-                    <div style={{
-                        color: '#00FF41',
-                        marginTop: '4px',
-                        fontSize: '12px',
-                        textAlign: 'right'
-                    }}>
-                        {loadProgress}%
-                    </div>
                 </div>
             )}
 
