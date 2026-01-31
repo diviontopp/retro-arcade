@@ -247,7 +247,7 @@ const BootScreen: React.FC<BootScreenProps> = ({ onComplete }) => {
                 }
 
                 .boot-text-container {
-                    margin-top: 140px; /* Reduced gap but safe for logo */
+                    margin-top: 80px; /* Positioned higher */
                     max-width: 800px; /* Prevent lines stretching too far */
                 }
 
